@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DLNA时钟屏保</string>
+    <string name="settings">设置</string>
+    <string name="switch_style">切换样式</string>
+    <string name="exit">退出</string>
+    <string name="play_pause">播放/暂停</string>
+
+    <!-- Clock settings -->
+    <string name="clock_settings">时钟设置</string>
+    <string name="clock_style">时钟样式</string>
+    <string name="font_size">字号</string>
+    <string name="position_x">水平位置</string>
+    <string name="position_y">垂直位置</string>
+    <string name="show_seconds">显示秒数</string>
+    <string name="show_date">显示日期</string>
+
+    <!-- Anti burn-in -->
+    <string name="anti_burn_in_settings">防烧屏设置</string>
+    <string name="anti_burn_in">位置随机移动</string>
+    <string name="pixel_shift">像素微偏移</string>
+    <string name="burn_in_interval">移动间隔</string>
+
+    <!-- Background -->
+    <string name="background_settings">背景设置</string>
+    <string name="bg_mode">背景模式</string>
+    <string name="choose_color">选择颜色</string>
+    <string name="choose_image">选择图片</string>
+    <string name="choose_video">选择视频</string>
+
+    <!-- DLNA -->
+    <string name="dlna_settings">DLNA设置</string>
+    <string name="device_name">设备名称</string>
+    <string name="apply">应用</string>
+</resources>

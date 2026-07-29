@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="clock_style_names">
+        <item>数字时钟</item>
+        <item>模拟时钟</item>
+        <item>霓虹灯时钟</item>
+        <item>极简时钟</item>
+    </string-array>
+
+    <string-array name="bg_mode_names">
+        <item>纯色背景</item>
+        <item>图片背景</item>
+        <item>视频背景</item>
+    </string-array>
+</resources>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <com.dlnaclock.screensaver.ScreenSaverView
+        android:id="@+id/screen_saver_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Control bar (hidden by default) -->
+    <LinearLayout
+        android:id="@+id/control_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#80000000"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="@string/settings"
+            android:src="@android:drawable/ic_menu_preferences"
+            android:scaleType="centerInside" />
+
+        <ImageButton
+            android:id="@+id/btn_switch_style"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="@string/switch_style"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:scaleType="centerInside" />
+
+        <ImageButton
+            android:id="@+id/btn_exit"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="@string/exit"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+</FrameLayout>
