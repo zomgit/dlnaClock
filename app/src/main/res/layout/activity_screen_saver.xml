@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
@@ -9,48 +10,123 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Control bar (hidden by default) -->
+    <!-- Menu bar (hidden by default, shown at top) -->
     <LinearLayout
-        android:id="@+id/control_bar"
+        android:id="@+id/menu_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="#80000000"
+        android:layout_gravity="top"
+        android:background="@android:color/transparent"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="12dp"
         android:visibility="gone">
 
         <ImageButton
-            android:id="@+id/btn_settings"
+            android:id="@+id/btn_menu_settings"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_margin="16dp"
-            android:background="?android:attr/selectableItemBackground"
-            android:contentDescription="@string/settings"
-            android:src="@android:drawable/ic_menu_preferences"
+            android:layout_margin="8dp"
+            android:background="#80000000"
+            android:contentDescription="@string/menu_settings"
+            app:srcCompat="@drawable/ic_settings_gear"
             android:scaleType="centerInside" />
 
         <ImageButton
-            android:id="@+id/btn_switch_style"
+            android:id="@+id/btn_menu_clock"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_margin="16dp"
-            android:background="?android:attr/selectableItemBackground"
-            android:contentDescription="@string/switch_style"
-            android:src="@android:drawable/ic_menu_rotate"
+            android:layout_margin="8dp"
+            android:background="#80000000"
+            android:contentDescription="@string/menu_clock_settings"
+            app:srcCompat="@drawable/ic_clock"
+            android:scaleType="centerInside" />
+
+        <ImageButton
+            android:id="@+id/btn_menu_background"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:background="#80000000"
+            android:contentDescription="@string/menu_bg_settings"
+            app:srcCompat="@drawable/ic_image"
+            android:scaleType="centerInside" />
+
+        <ImageButton
+            android:id="@+id/btn_menu_dlna_airplay"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="8dp"
+            android:background="#80000000"
+            android:contentDescription="@string/menu_dlna_airplay"
+            app:srcCompat="@drawable/ic_server"
             android:scaleType="centerInside" />
 
         <ImageButton
             android:id="@+id/btn_exit"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_margin="16dp"
-            android:background="?android:attr/selectableItemBackground"
+            android:layout_margin="8dp"
+            android:background="#80000000"
             android:contentDescription="@string/exit"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:srcCompat="@drawable/ic_power"
             android:scaleType="centerInside" />
 
     </LinearLayout>
+
+    <!-- Bottom-left: switch clock style (clock icon) -->
+    <ImageButton
+        android:id="@+id/btn_switch_style"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        android:background="#80000000"
+        android:contentDescription="@string/switch_style"
+        app:srcCompat="@drawable/ic_clock"
+        android:scaleType="centerInside"
+        android:visibility="gone" />
+
+    <!-- Bottom-right group: wallpaper switch + background switch -->
+    <LinearLayout
+        android:id="@+id/bottom_right_group"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <!-- Switch wallpaper style (only visible in wallpaper mode) -->
+        <ImageButton
+            android:id="@+id/btn_switch_wallpaper"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:background="#80000000"
+            android:contentDescription="@string/switch_wallpaper"
+            app:srcCompat="@drawable/ic_image"
+            android:scaleType="centerInside"
+            android:visibility="gone" />
+
+        <!-- Switch style -->
+        <ImageButton
+            android:id="@+id/btn_switch_bg"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="#80000000"
+            android:contentDescription="@string/switch_bg"
+            app:srcCompat="@drawable/ic_style"
+            android:scaleType="centerInside" />
+
+    </LinearLayout>
+
+    <!-- Wallpaper Control Panel (centered, hidden by default) -->
+    <FrameLayout
+        android:id="@+id/wallpaper_control_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 
 </FrameLayout>

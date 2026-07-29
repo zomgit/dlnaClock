@@ -13,6 +13,11 @@ import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * ImageLoader - 图片加载器（单例）
+ * 内存缓存（LruCache）+ 异步加载（线程池 + Handler 回调 UI）
+ * 支持 URL 下载和本地文件加载，用于专辑封面等图片显示
+ */
 public class ImageLoader {
 
     private static ImageLoader instance;

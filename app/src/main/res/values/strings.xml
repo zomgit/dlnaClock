@@ -2,18 +2,49 @@
 <resources>
     <string name="app_name">DLNA时钟屏保</string>
     <string name="settings">设置</string>
-    <string name="switch_style">切换样式</string>
+    <string name="switch_style">切换表盘</string>
+    <string name="switch_bg">切换样式</string>
+    <string name="switch_wallpaper">切换壁纸</string>
     <string name="exit">退出</string>
+    <string name="menu_settings">设置</string>
+    <string name="menu_clock_settings">表盘设置</string>
+    <string name="menu_bg_settings">背景设置</string>
+    <string name="menu_dlna_airplay">DLNA/AirPlay</string>
     <string name="play_pause">播放/暂停</string>
+    <string name="stop">停止</string>
 
     <!-- Clock settings -->
     <string name="clock_settings">时钟设置</string>
     <string name="clock_style">时钟样式</string>
-    <string name="font_size">字号</string>
+    <string name="font_size">大小</string>
     <string name="position_x">水平位置</string>
     <string name="position_y">垂直位置</string>
-    <string name="show_seconds">显示秒数</string>
-    <string name="show_date">显示日期</string>
+    <string name="clock_color">时钟颜色</string>
+    <string name="clock_format">显示内容格式</string>
+    <string name="custom_format">自定义格式</string>
+    <string name="format_hint">如: HH:mm:ss yyyy-MM-dd EEE</string>
+
+    <!-- Digital clock font settings -->
+    <string name="digital_font_settings">数字时钟字体设置</string>
+    <string name="number_font">数字字体</string>
+    <string name="english_font">英文字体</string>
+    <string name="chinese_font">中文字体</string>
+
+    <!-- Minimal clock settings -->
+    <string name="minimal_clock_settings">自定义时钟设置</string>
+    <string name="minimal_profile_label">档案栏位</string>
+    <string name="minimal_row_label">第%d行</string>
+    <string name="minimal_content_type">内容类型</string>
+    <string name="minimal_format">格式</string>
+    <string name="minimal_custom_format">自定义格式</string>
+    <string name="minimal_custom_format_hint">输入自定义格式</string>
+    <string name="minimal_use_12hour">12小时制</string>
+    <string name="minimal_font">字体</string>
+    <string name="minimal_color">颜色</string>
+    <string name="minimal_custom_text">自定义文本</string>
+    <string name="minimal_custom_text_hint">输入自定义显示内容</string>
+    <string name="minimal_status_items">状态信息</string>
+    <string name="minimal_rotate_interval">轮播间隔</string>
 
     <!-- Anti burn-in -->
     <string name="anti_burn_in_settings">防烧屏设置</string>
@@ -27,9 +58,23 @@
     <string name="choose_color">选择颜色</string>
     <string name="choose_image">选择图片</string>
     <string name="choose_video">选择视频</string>
+    <string name="wallpaper_type">壁纸样式</string>
+    <string name="bg_image_fit">图片适应方式</string>
+    <string name="more_fonts">更多字体…</string>
 
     <!-- DLNA -->
     <string name="dlna_settings">DLNA设置</string>
+    <string name="dlna_enable">启用DLNA投屏</string>
     <string name="device_name">设备名称</string>
+    <string name="video_player">视频播放器</string>
     <string name="apply">应用</string>
+    <string name="dlna_disabled">DLNA已关闭</string>
+    <string name="dlna_enabled">DLNA已开启</string>
+
+    <!-- AirPlay -->
+    <string name="airplay_settings">AirPlay设置</string>
+    <string name="airplay_enable">启用AirPlay投屏</string>
+    <string name="airplay_device_name">AirPlay设备名</string>
+    <string name="airplay_disabled">AirPlay已关闭</string>
+    <string name="airplay_enabled">AirPlay已开启</string>
 </resources>

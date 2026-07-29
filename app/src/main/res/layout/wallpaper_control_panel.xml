@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#CC1A1A2E">
+
+    <TextView
+        android:id="@+id/tv_wallpaper_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:paddingBottom="6dp"
+        android:textSize="14sp"
+        android:textColor="#CCFFFFFF"
+        android:textStyle="bold"
+        android:text="壁纸名称" />
+
+    <ScrollView
+        android:id="@+id/scroll_params"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="vertical"
+        android:fadingEdge="vertical"
+        android:fadingEdgeLength="16dp">
+
+        <LinearLayout
+            android:id="@+id/layout_params_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btn_reset_params"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:layout_gravity="end"
+        android:layout_marginRight="12dp"
+        android:layout_marginTop="4dp"
+        android:text="重置默认"
+        android:textSize="11sp"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/bg_settings_button"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:minWidth="0dp" />
+
+</LinearLayout>

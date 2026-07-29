@@ -12,21 +12,26 @@ import com.dlnaclock.clock.ClockConfig;
 import com.dlnaclock.clock.ClockRenderer;
 import com.dlnaclock.clock.DigitalClockRenderer;
 import com.dlnaclock.clock.MinimalClockRenderer;
-import com.dlnaclock.clock.NeonClockRenderer;
 
 import java.util.Calendar;
 
+/**
+ * ScreenSaverView - 屏保自定义 View
+ * 在 onDraw 中调用 ClockRenderer 绘制时钟，集成 BackgroundManager 绘制背景，
+ * 集成 AntiBurnInManager 应用防烧屏偏移
+ */
 public class ScreenSaverView extends View {
 
-    private ClockRenderer clockRenderer;
-    private ClockConfig clockConfig;
-    private BackgroundManager backgroundManager;
-    private AntiBurnInManager antiBurnInManager;
-    private Handler handler = new Handler(Looper.getMainLooper());
-    private boolean isRunning = false;
+    private ClockRenderer clockRenderer;           // 当前时钟渲染器
+    private ClockConfig clockConfig;               // 时钟配置
+    private BackgroundManager backgroundManager;   // 背景管理器
+    private AntiBurnInManager antiBurnInManager;   // 防烧屏管理器
 
     private float burnInOffsetX = 0;
     private float burnInOffsetY = 0;
+
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private boolean isRunning = false;
 
     public ScreenSaverView(Context context) {
         super(context);
@@ -44,7 +49,6 @@ public class ScreenSaverView extends View {
     }
 
     private void init() {
-        setLayerType(LAYER_TYPE_SOFTWARE, null); // Required for BlurMaskFilter in NeonClock
         clockConfig = ClockConfig.fromPreferences();
         clockRenderer = createRenderer(clockConfig.getStyle());
         backgroundManager = new BackgroundManager(getContext());
@@ -62,7 +66,6 @@ public class ScreenSaverView extends View {
     private ClockRenderer createRenderer(ClockConfig.ClockStyle style) {
         switch (style) {
             case ANALOG: return new AnalogClockRenderer();
-            case NEON: return new NeonClockRenderer();
             case MINIMAL: return new MinimalClockRenderer();
             case DIGITAL:
             default: return new DigitalClockRenderer();
@@ -86,6 +89,7 @@ public class ScreenSaverView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        backgroundManager.initWallpaper(w, h);
         if (isRunning) {
             antiBurnInManager.start(w, h);
         }
@@ -101,13 +105,18 @@ public class ScreenSaverView extends View {
         // Draw background
         backgroundManager.draw(canvas, width, height);
 
-        // Apply burn-in offset
+        // 确保 canvas 状态干净（防止背景绘制后残留变换）
         canvas.save();
+        // Apply burn-in offset
         canvas.translate(burnInOffsetX, burnInOffsetY);
 
         // Draw clock
-        if (clockRenderer != null && clockConfig != null) {
-            clockRenderer.draw(canvas, width, height, Calendar.getInstance(), clockConfig);
+        try {
+            if (clockRenderer != null && clockConfig != null) {
+                clockRenderer.draw(canvas, width, height, Calendar.getInstance(), clockConfig);
+            }
+        } catch (Exception e) {
+            // 时钟绘制失败时不影响整体渲染
         }
 
         canvas.restore();
@@ -130,7 +139,8 @@ public class ScreenSaverView extends View {
         public void run() {
             if (isRunning) {
                 invalidate();
-                handler.postDelayed(this, 1000);
+                long interval = backgroundManager.isWallpaperMode() ? 33 : 1000;
+                handler.postDelayed(this, interval);
             }
         }
     };
@@ -138,13 +148,18 @@ public class ScreenSaverView extends View {
     private void startClockUpdate() {
         handler.removeCallbacks(clockUpdateRunnable);
         invalidate();
-        handler.postDelayed(clockUpdateRunnable, 1000);
+        long interval = backgroundManager.isWallpaperMode() ? 33 : 1000;
+        handler.postDelayed(clockUpdateRunnable, interval);
     }
 
     public void reloadConfig() {
         clockConfig = ClockConfig.fromPreferences();
         clockRenderer = createRenderer(clockConfig.getStyle());
         backgroundManager.reloadConfig();
+        backgroundManager.initWallpaper(getWidth(), getHeight());
+        if (isRunning) {
+            startClockUpdate();
+        }
         invalidate();
     }
 }

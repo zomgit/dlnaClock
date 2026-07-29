@@ -7,13 +7,20 @@ import com.dlnaclock.util.PreferenceHelper;
 
 import java.util.Random;
 
+/**
+ * AntiBurnInManager - 防烧屏管理器
+ * 提供两种防烧屏机制：
+ * 1. 位置随机偏移：每 N 秒偏移 ±10% 屏幕宽高
+ * 2. 像素微偏移：每 5 秒偏移 1-5px
+ * 偏移值应用到 Canvas.translate()
+ */
 public class AntiBurnInManager {
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private Random random = new Random();
-    private boolean enabled = false;
-    private boolean pixelShiftEnabled = false;
-    private int intervalSeconds = 30;
+    private boolean enabled = false;          // 位置偏移开关
+    private boolean pixelShiftEnabled = false; // 像素微偏移开关
+    private int intervalSeconds = 30;          // 位置偏移间隔（秒）
 
     private float offsetX = 0;
     private float offsetY = 0;
@@ -25,6 +32,7 @@ public class AntiBurnInManager {
 
     private OffsetChangeListener listener;
 
+    /** OffsetChangeListener - 偏移量变化监听接口 */
     public interface OffsetChangeListener {
         void onOffsetChanged(float offsetX, float offsetY, float pixelOffsetX, float pixelOffsetY);
     }
@@ -45,9 +53,17 @@ public class AntiBurnInManager {
 
         if (enabled) {
             schedulePositionMove();
+        } else {
+            // 关闭时重置位置偏移量，回到用户设定位置
+            handler.removeCallbacks(positionMoveRunnable);
+            resetOffsets();
         }
         if (pixelShiftEnabled) {
             schedulePixelShift();
+        } else {
+            // 关闭时重置像素偏移量
+            handler.removeCallbacks(pixelShiftRunnable);
+            resetPixelOffsets();
         }
     }
 
@@ -107,6 +123,20 @@ public class AntiBurnInManager {
 
     public float getTotalOffsetY() {
         return offsetY + pixelOffsetY;
+    }
+
+    /** resetOffsets - 重置位置偏移量为零，回到用户设定位置 */
+    private void resetOffsets() {
+        offsetX = 0;
+        offsetY = 0;
+        notifyOffsetChanged();
+    }
+
+    /** resetPixelOffsets - 重置像素微偏移量为零 */
+    private void resetPixelOffsets() {
+        pixelOffsetX = 0;
+        pixelOffsetY = 0;
+        notifyOffsetChanged();
     }
 
     public boolean isEnabled() {

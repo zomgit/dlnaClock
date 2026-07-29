@@ -1,20 +1,25 @@
 package com.dlnaclock.dlna.soap;
 
-import android.util.Log;
+import com.dlnaclock.util.LogUtil;
 
 import com.dlnaclock.dlna.avt.AVTransportService;
 import com.dlnaclock.dlna.rc.RenderingControlService;
 import com.dlnaclock.dlna.rc.ConnectionManagerService;
 import com.dlnaclock.util.XmlUtil;
 
+/**
+ * SoapHandler - SOAP 控制请求处理器
+ * 接收 SOAP Action 请求，分发到对应的服务（AVT/RC/CM）处理，并构建 SOAP 响应
+ */
 public class SoapHandler {
 
     private static final String TAG = "SoapHandler";
 
-    private AVTransportService avtService;
-    private RenderingControlService rcService;
-    private ConnectionManagerService cmService;
+    private AVTransportService avtService;         // AVTransport 播放控制服务
+    private RenderingControlService rcService;     // RenderingControl 音量控制服务
+    private ConnectionManagerService cmService;    // ConnectionManager 连接管理服务
 
+    /** SoapHandler - 构造函数，注入三个服务实例 */
     public SoapHandler(AVTransportService avtService, RenderingControlService rcService,
                        ConnectionManagerService cmService) {
         this.avtService = avtService;
@@ -22,8 +27,15 @@ public class SoapHandler {
         this.cmService = cmService;
     }
 
+    /**
+     * handleRequest - 处理 SOAP 请求，根据服务类型分发到对应方法
+     * @param serviceType 服务类型（AVTransport/RenderingControl/ConnectionManager）
+     * @param action Action 名称（如 SetAVTransportURI、Play 等）
+     * @param soapBody SOAP Body XML 内容
+     * @return SoapResponse 包含状态码和响应 XML
+     */
     public SoapResponse handleRequest(String serviceType, String action, String soapBody) {
-        Log.d(TAG, "Handling SOAP action: " + action + " for service: " + serviceType);
+        LogUtil.d(TAG, "Handling SOAP action: " + action + " for service: " + serviceType);
 
         try {
             if (serviceType.contains("AVTransport")) {
@@ -34,13 +46,14 @@ public class SoapHandler {
                 return handleConnectionManagerAction(action, soapBody);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error handling SOAP action: " + action, e);
+            LogUtil.e(TAG, "Error handling SOAP action: " + action, e);
             return buildErrorResponse(SoapConstants.ERROR_ACTION_FAILED, "Action failed: " + e.getMessage());
         }
 
         return buildErrorResponse(SoapConstants.ERROR_INVALID_ACTION, "Unknown service type: " + serviceType);
     }
 
+    /** handleAVTransportAction - 处理 AVTransport 服务的 10 个 Action */
     private SoapResponse handleAVTransportAction(String action, String soapBody) {
         switch (action) {
             case SoapConstants.ACTION_SET_AV_TRANSPORT_URI: {
@@ -48,9 +61,20 @@ public class SoapHandler {
                 String uri = XmlUtil.getTagValue(soapBody, "CurrentURI");
                 String metadata = XmlUtil.getTagValue(soapBody, "CurrentURIMetaData");
 
-                Log.i(TAG, "SetAVTransportURI - URI: " + uri);
+                // Decode XML entities in metadata (DLNA senders escape nested XML)
                 if (metadata != null) {
-                    Log.d(TAG, "SetAVTransportURI - Metadata length: " + metadata.length());
+                    metadata = XmlUtil.decodeXmlEntities(metadata);
+                }
+                // Also decode URI if it contains entities
+                if (uri != null) {
+                    uri = XmlUtil.decodeXmlEntities(uri);
+                }
+
+                LogUtil.i(TAG, "SetAVTransportURI - URI: " + uri);
+                if (metadata != null) {
+                    LogUtil.d(TAG, "SetAVTransportURI - Metadata length: " + metadata.length());
+                    LogUtil.d(TAG, "SetAVTransportURI - Metadata preview: " +
+                            metadata.substring(0, Math.min(200, metadata.length())));
                 }
 
                 int instId = 0;
@@ -176,6 +200,7 @@ public class SoapHandler {
         }
     }
 
+    /** handleRenderingControlAction - 处理 RenderingControl 服务的 4 个 Action（音量/静音） */
     private SoapResponse handleRenderingControlAction(String action, String soapBody) {
         switch (action) {
             case SoapConstants.ACTION_SET_VOLUME: {
@@ -184,7 +209,7 @@ public class SoapHandler {
                     try {
                         rcService.setVolume(Integer.parseInt(volume));
                     } catch (NumberFormatException e) {
-                        Log.w(TAG, "Invalid volume value: " + volume);
+                        LogUtil.w(TAG, "Invalid volume value: " + volume);
                     }
                 }
                 String responseXml = SoapConstants.SOAP_ENVELOPE_START +
@@ -230,6 +255,7 @@ public class SoapHandler {
         }
     }
 
+    /** handleConnectionManagerAction - 处理 ConnectionManager 服务的 3 个 Action */
     private SoapResponse handleConnectionManagerAction(String action, String soapBody) {
         switch (action) {
             case SoapConstants.ACTION_GET_PROTOCOL_INFO: {
@@ -256,7 +282,7 @@ public class SoapHandler {
                         "<u:GetCurrentConnectionInfoResponse xmlns:u=\"urn:schemas-upnp-org:service:ConnectionManager:1\">" +
                         "<RcsID>-1</RcsID>" +
                         "<AVTransportID>0</AVTransportID>" +
-                        "<ProtocolInfo>" + SoapConstants.PROTOCOL_INFO_SOURCE + "</ProtocolInfo>" +
+                        "<ProtocolInfo>" + SoapConstants.PROTOCOL_INFO_SINK + "</ProtocolInfo>" +
                         "<PeerConnectionManager></PeerConnectionManager>" +
                         "<PeerConnectionID>-1</PeerConnectionID>" +
                         "<Direction>Input</Direction>" +
@@ -272,6 +298,7 @@ public class SoapHandler {
         }
     }
 
+    /** buildErrorResponse - 构建 SOAP 错误响应（500 Fault） */
     public static SoapResponse buildErrorResponse(int errorCode, String errorDescription) {
         String responseXml = SoapConstants.SOAP_ENVELOPE_START +
                 "<s:Fault>" +
@@ -288,6 +315,7 @@ public class SoapHandler {
         return new SoapResponse(500, responseXml);
     }
 
+    /** SoapResponse - SOAP 响应数据类，包含状态码和 XML 内容 */
     public static class SoapResponse {
         public final int statusCode;
         public final String body;
@@ -298,7 +326,10 @@ public class SoapHandler {
         }
     }
 
-    // Parse SOAP action from SOAPACTION header or body
+    /**
+     * parseAction - 从 SOAPACTION 头部或 SOAP Body 中解析 Action 名称
+     * 优先从头部解析，失败则从 Body 中提取
+     */
     public static String parseAction(String soapActionHeader, String soapBody) {
         // Try SOAPACTION header first
         if (soapActionHeader != null && !soapActionHeader.isEmpty()) {
@@ -333,7 +364,7 @@ public class SoapHandler {
         return null;
     }
 
-    // Parse service type from SOAPACTION header
+    /** parseServiceType - 从 SOAPACTION 头部解析服务类型 */
     public static String parseServiceType(String soapActionHeader) {
         if (soapActionHeader != null && !soapActionHeader.isEmpty()) {
             int hashIdx = soapActionHeader.indexOf('#');

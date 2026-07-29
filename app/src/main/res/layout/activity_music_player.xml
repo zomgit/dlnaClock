@@ -1,134 +1,160 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 竖屏：上下布局，顶部小时钟区 + 下方专辑封面/歌曲信息/进度条/控制按键 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
-    android:orientation="horizontal">
+    android:background="#000000">
 
-    <!-- Left: Clock area (50%) -->
-    <FrameLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1">
-
-        <com.dlnaclock.screensaver.ScreenSaverView
-            android:id="@+id/clock_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-    </FrameLayout>
-
-    <!-- Divider -->
-    <View
-        android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:background="#33FFFFFF" />
-
-    <!-- Right: Music info area (50%) -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp">
+        android:orientation="vertical">
 
-        <!-- Album art -->
-        <ImageView
-            android:id="@+id/album_art"
-            android:layout_width="240dp"
-            android:layout_height="240dp"
-            android:layout_gravity="center_horizontal"
-            android:scaleType="centerCrop"
-            android:background="#333333" />
-
-        <!-- Song title -->
-        <TextView
-            android:id="@+id/song_title"
+        <!-- Top: Clock area (~18%) -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:ellipsize="marquee"
-            android:gravity="center"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:singleLine="true"
-            android:text="未知歌曲"
-            android:textColor="#FFFFFF"
-            android:textSize="28sp"
-            android:textStyle="bold" />
+            android:layout_height="0dp"
+            android:layout_weight="18">
 
-        <!-- Artist -->
-        <TextView
-            android:id="@+id/song_artist"
+            <com.dlnaclock.screensaver.ScreenSaverView
+                android:id="@+id/clock_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </FrameLayout>
+
+        <!-- Divider -->
+        <View
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:singleLine="true"
-            android:text="未知歌手"
-            android:textColor="#AAAAAA"
-            android:textSize="18sp" />
+            android:layout_height="1dp"
+            android:background="#33FFFFFF" />
 
-        <!-- Album -->
-        <TextView
-            android:id="@+id/song_album"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:singleLine="true"
-            android:text=""
-            android:textColor="#888888"
-            android:textSize="14sp" />
-
-        <!-- SeekBar -->
+        <!-- Bottom: Music info area (~82%) -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_height="0dp"
+            android:layout_weight="82"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="16dp">
 
+            <!-- Album art (实际尺寸在代码中按屏幕短边比例计算) -->
+            <ImageView
+                android:id="@+id/album_art"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:layout_gravity="center_horizontal"
+                android:scaleType="centerCrop"
+                android:background="#333333" />
+
+            <!-- Song title -->
             <TextView
-                android:id="@+id/current_time"
-                android:layout_width="wrap_content"
+                android:id="@+id/song_title"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="00:00"
-                android:textColor="#AAAAAA"
-                android:textSize="12sp" />
+                android:layout_marginTop="16dp"
+                android:ellipsize="marquee"
+                android:gravity="center"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:text="未知歌曲"
+                android:textColor="#FFFFFF"
+                android:textSize="26sp"
+                android:textStyle="bold" />
 
-            <SeekBar
-                android:id="@+id/seek_bar"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:max="100"
-                android:progress="0" />
-
+            <!-- Artist -->
             <TextView
-                android:id="@+id/total_time"
-                android:layout_width="wrap_content"
+                android:id="@+id/song_artist"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="00:00"
+                android:layout_marginTop="6dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:singleLine="true"
+                android:text="未知歌手"
                 android:textColor="#AAAAAA"
-                android:textSize="12sp" />
+                android:textSize="18sp" />
+
+            <!-- Album -->
+            <TextView
+                android:id="@+id/song_album"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:singleLine="true"
+                android:text=""
+                android:textColor="#888888"
+                android:textSize="14sp" />
+
+            <!-- Play/Pause + SeekBar row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/btn_play_pause"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_control_button"
+                    android:contentDescription="@string/play_pause"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_media_play" />
+
+                <TextView
+                    android:id="@+id/current_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="00:00"
+                    android:textColor="#AAAAAA"
+                    android:textSize="12sp" />
+
+                <SeekBar
+                    android:id="@+id/seek_bar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:max="100"
+                    android:progress="0" />
+
+                <TextView
+                    android:id="@+id/total_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="00:00"
+                    android:textColor="#AAAAAA"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
-        <!-- Play/Pause button -->
-        <ImageButton
-            android:id="@+id/btn_play_pause"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/play_pause"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_media_play" />
-
     </LinearLayout>
 
-</LinearLayout>
+    <!-- 右上角关闭按钮（停止+关闭） -->
+    <ImageButton
+        android:id="@+id/btn_close"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_control_button"
+        android:contentDescription="@string/stop"
+        android:scaleType="centerInside"
+        android:src="@android:drawable/ic_menu_close_clear_cancel" />
+
+    <!-- Volume OSD overlay (仅显示音量，不拦截触摸) -->
+    <com.dlnaclock.media.OsdOverlayView
+        android:id="@+id/volume_osd"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</FrameLayout>

@@ -1,15 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 时钟样式（3种） -->
     <string-array name="clock_style_names">
         <item>数字时钟</item>
         <item>模拟时钟</item>
-        <item>霓虹灯时钟</item>
-        <item>极简时钟</item>
+        <item>自定义时钟</item>
     </string-array>
 
+    <!-- 背景模式 -->
     <string-array name="bg_mode_names">
         <item>纯色背景</item>
         <item>图片背景</item>
         <item>视频背景</item>
+        <item>动态壁纸</item>
+    </string-array>
+
+    <!-- 图片适应模式 -->
+    <string-array name="bg_image_fit_names">
+        <item>居中裁剪</item>
+        <item>拉伸</item>
+        <item>自适应宽度</item>
+        <item>自适应高度</item>
+        <item>居中</item>
+    </string-array>
+
+    <!-- 动态壁纸类型 -->
+    <string-array name="wallpaper_type_names">
+        <item>全息螺旋</item>
+        <item>极光 V1</item>
+        <item>极光 V2</item>
+        <item>相位光束</item>
+        <item>星空</item>
+        <item>森林</item>
+        <item>深海</item>
+        <item>魔烟</item>
+        <item>银河</item>
+        <item>立方体</item>
+        <item>动态渐变</item>
+        <item>动态渐变V2</item>
+        <item>字符雨</item>
+    </string-array>
+
+    <!-- 数字时钟格式预设（保留兼容） -->
+    <string-array name="clock_format_presets">
+        <item>HH:mm:ss</item>
+        <item>HH:mm</item>
+        <item>HH:mm:ss yyyy-MM-dd</item>
+        <item>HH:mm:ss yyyy-MM-dd EEE</item>
+        <item>HH:mm:ss EEE</item>
+        <item>yyyy年MM月dd日 HH:mm:ss</item>
+    </string-array>
+
+    <string-array name="clock_format_preset_names">
+        <item>时:分:秒</item>
+        <item>时:分</item>
+        <item>时:分:秒 年-月-日</item>
+        <item>时:分:秒 年-月-日 星期</item>
+        <item>时:分:秒 星期</item>
+        <item>中文日期 时:分:秒</item>
+        <item>自定义…</item>
+    </string-array>
+
+    <!-- 自定义时钟 - 行内容类型 -->
+    <string-array name="minimal_content_type_names">
+        <item>不显示</item>
+        <item>时间</item>
+        <item>日期</item>
+        <item>状态</item>
+        <item>自定义文本</item>
+    </string-array>
+
+    <!-- 自定义时钟 - 时间格式预设 -->
+    <string-array name="minimal_time_format_names">
+        <item>HH:mm:ss</item>
+        <item>HH:mm</item>
+        <item>HH:mm:ss EEE</item>
+        <item>自定义…</item>
+    </string-array>
+
+    <string-array name="minimal_time_format_presets">
+        <item>HH:mm:ss</item>
+        <item>HH:mm</item>
+        <item>HH:mm:ss EEE</item>
+    </string-array>
+
+    <!-- 自定义时钟 - 日期格式预设 -->
+    <string-array name="minimal_date_format_names">
+        <item>yyyy-MM-dd</item>
+        <item>yyyy年MM月dd日</item>
+        <item>MM/dd/yyyy</item>
+        <item>自定义…</item>
+    </string-array>
+
+    <string-array name="minimal_date_format_presets">
+        <item>yyyy-MM-dd</item>
+        <item>yyyy年MM月dd日</item>
+        <item>MM/dd/yyyy</item>
+    </string-array>
+
+    <!-- 自定义时钟 - 状态行可选项 -->
+    <string-array name="minimal_status_items">
+        <item>CPU 利用率</item>
+        <item>电量</item>
+        <item>本APP已运行时间</item>
+        <item>手机已开机时间</item>
+        <item>自定义内容</item>
     </string-array>
 </resources>

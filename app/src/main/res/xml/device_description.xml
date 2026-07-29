@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0" config-id="1">
+    <specVersion>
+        <major>1</major>
+        <minor>1</minor>
+    </specVersion>
+    <device>
+        <deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>
+        <friendlyName>${friendlyName}</friendlyName>
+        <manufacturer>${manufacturer}</manufacturer>
+        <manufacturerURL>${baseUrl}</manufacturerURL>
+        <modelDescription>${modelDescription}</modelDescription>
+        <modelName>${modelName}</modelName>
+        <modelNumber>${modelNumber}</modelNumber>
+        <modelURL>${baseUrl}</modelURL>
+        <UDN>${udn}</UDN>
+        <serviceList>
+            <service>
+                <serviceType>urn:schemas-upnp-org:service:AVTransport:1</serviceType>
+                <serviceId>urn:upnp-org:serviceId:AVTransport</serviceId>
+                <controlURL>/ctl/AVTransport</controlURL>
+                <eventSubURL>/event/AVTransport</eventSubURL>
+                <SCPDURL>/scpd/AVTransport.xml</SCPDURL>
+            </service>
+            <service>
+                <serviceType>urn:schemas-upnp-org:service:RenderingControl:1</serviceType>
+                <serviceId>urn:upnp-org:serviceId:RenderingControl</serviceId>
+                <controlURL>/ctl/RenderingControl</controlURL>
+                <eventSubURL>/event/RenderingControl</eventSubURL>
+                <SCPDURL>/scpd/RenderingControl.xml</SCPDURL>
+            </service>
+            <service>
+                <serviceType>urn:schemas-upnp-org:service:ConnectionManager:1</serviceType>
+                <serviceId>urn:upnp-org:serviceId:ConnectionManager</serviceId>
+                <controlURL>/ctl/ConnectionManager</controlURL>
+                <eventSubURL>/event/ConnectionManager</eventSubURL>
+                <SCPDURL>/scpd/ConnectionManager.xml</SCPDURL>
+            </service>
+        </serviceList>
+    </device>
+</root>

@@ -2,21 +2,32 @@ package com.dlnaclock.dlna.avt;
 
 import java.util.Map;
 
+/**
+ * MediaInfo - 媒体信息数据模型
+ * 存储当前媒体的 URI、标题、艺术家、专辑、封面等元数据
+ * 提供 DIDL-Lite 元数据解析、音频/视频类型判断、MIME 推断等功能
+ */
 public class MediaInfo {
 
-    private String currentUri = "";
-    private String currentUriMetadata = "";
-    private String title = "";
-    private String artist = "";
-    private String album = "";
-    private String albumArtUri = "";
-    private String duration = "00:00:00";
-    private String mimeType = "";
-    private String upnpClass = "";
+    private String currentUri = "";          // 媒体播放地址
+    private String currentUriMetadata = "";  // 原始元数据 XML
+    private String title = "";               // 标题
+    private String artist = "";              // 艺术家/歌手
+    private String album = "";               // 专辑名
+    private String albumArtUri = "";         // 专辑封面图片 URL
+    private String duration = "00:00:00";    // 时长（HH:MM:SS）
+    private String mimeType = "";            // MIME 类型
+    private String upnpClass = "";           // UPnP class（用于判断媒体类型）
 
+    /** MediaInfo - 构造函数 */
     public MediaInfo() {
     }
 
+    /**
+     * parseMetadata - 解析 DIDL-Lite 元数据 XML
+     * 提取 title/artist/album/albumArtURI/upnp:class 等字段
+     * 无 metadata 时从 URI 推断标题
+     */
     public void parseMetadata(String metadata) {
         if (metadata == null || metadata.isEmpty()) {
             // Try to infer from URI
@@ -51,6 +62,7 @@ public class MediaInfo {
         }
     }
 
+    /** inferFromUri - 从 URI 中推断标题（提取文件名） */
     private void inferFromUri() {
         if (currentUri != null && !currentUri.isEmpty()) {
             try {
@@ -80,6 +92,7 @@ public class MediaInfo {
         }
     }
 
+    /** isAudio - 判断当前媒体是否为音频（通过 MIME/upnpClass/URI 综合判断） */
     public boolean isAudio() {
         if (mimeType != null && mimeType.startsWith("audio")) return true;
         if (upnpClass != null && upnpClass.contains("audio")) return true;
@@ -96,6 +109,7 @@ public class MediaInfo {
         return false;
     }
 
+    /** isVideo - 判断当前媒体是否为视频（通过 MIME/upnpClass/URI 综合判断） */
     public boolean isVideo() {
         if (mimeType != null && mimeType.startsWith("video")) return true;
         if (upnpClass != null && upnpClass.contains("video")) return true;
@@ -139,6 +153,7 @@ public class MediaInfo {
 
     public String getUpnpClass() { return upnpClass; }
 
+    /** clear - 清空所有媒体信息 */
     public void clear() {
         currentUri = "";
         currentUriMetadata = "";

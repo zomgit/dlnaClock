@@ -1,16 +1,21 @@
 package com.dlnaclock.dlna.device;
 
+/**
+ * DmrDevice - DMR (Digital Media Renderer) 设备模型
+ * 存储设备的基本信息：UDN、名称、制造商、型号、HTTP 端口等
+ */
 public class DmrDevice {
 
-    private String udn;
-    private String friendlyName;
-    private String manufacturer;
-    private String modelName;
-    private String modelNumber;
-    private String modelDescription;
-    private String deviceType;
-    private int httpPort;
+    private String udn;              // 设备唯一标识符
+    private String friendlyName;     // 用户可见的设备名称
+    private String manufacturer;     // 制造商
+    private String modelName;        // 型号名称
+    private String modelNumber;      // 型号编号
+    private String modelDescription; // 型号描述
+    private String deviceType;       // 设备类型 URN
+    private int httpPort;            // HTTP 服务器端口
 
+    /** DmrDevice - 构造函数，设置默认设备类型和端口 */
     public DmrDevice() {
         this.deviceType = "urn:schemas-upnp-org:device:MediaRenderer:1";
         this.httpPort = 49152;
