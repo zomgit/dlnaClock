@@ -355,15 +355,54 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/anti_burn_in"
-                    android:textColor="@color/text_secondary" />
-                <CheckBox
-                    android:id="@+id/check_pixel_shift"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp" />
+
+                <!-- 防烧屏说明 -->
+                <TextView
+                    style="@style/Settings.Hint"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/pixel_shift"
-                    android:textColor="@color/text_secondary"
-                    android:layout_marginBottom="@dimen/item_spacing" />
+                    android:layout_marginBottom="@dimen/item_spacing"
+                    android:text="@string/anti_burn_in_desc" />
 
+                <!-- 防烧屏方式 -->
+                <TextView
+                    style="@style/Settings.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/burn_in_mode" />
+                <RadioGroup
+                    android:id="@+id/radio_burn_in_mode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/item_spacing">
+                    <RadioButton
+                        android:id="@+id/radio_burn_in_shift"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/burn_in_mode_shift"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                    <RadioButton
+                        android:id="@+id/radio_burn_in_bounce"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/burn_in_mode_bounce"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:layout_marginStart="8dp" />
+                </RadioGroup>
+
+                <!-- 随机偏移参数组 -->
+                <LinearLayout
+                    android:id="@+id/layout_burn_in_shift"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                <!-- 移动间隔 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -388,10 +427,140 @@
                         android:paddingBottom="2dp"
                         android:text="30s" />
                 </LinearLayout>
+                <TextView
+                    style="@style/Settings.Hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/burn_in_interval_desc" />
                 <SeekBar
                     android:id="@+id/seekbar_burn_in_interval"
                     android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/item_spacing" />
+
+                <!-- 偏移幅度 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/burn_in_offset_range" />
+                    <TextView
+                        android:id="@+id/tv_burn_in_offset_range_value"
+                        style="@style/Settings.Value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_value_badge"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:text="15%" />
+                </LinearLayout>
+                <TextView
+                    style="@style/Settings.Hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/burn_in_offset_range_desc" />
+                <SeekBar
+                    android:id="@+id/seekbar_burn_in_offset_range"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <!-- 弹射运动参数组 -->
+                <LinearLayout
+                    android:id="@+id/layout_burn_in_bounce"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                <!-- 弹射角度 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/bounce_angle_range" />
+                    <TextView
+                        android:id="@+id/tv_bounce_angle_value"
+                        style="@style/Settings.Value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_value_badge"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:text="30°" />
+                </LinearLayout>
+                <TextView
+                    style="@style/Settings.Hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bounce_angle_desc" />
+                <SeekBar
+                    android:id="@+id/seekbar_bounce_angle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/item_spacing" />
+
+                <!-- 移动速度 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/bounce_speed" />
+                    <TextView
+                        android:id="@+id/tv_bounce_speed_value"
+                        style="@style/Settings.Value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_value_badge"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:text="8%" />
+                </LinearLayout>
+                <TextView
+                    style="@style/Settings.Hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bounce_speed_desc" />
+                <SeekBar
+                    android:id="@+id/seekbar_bounce_speed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/item_spacing" />
+
+                <!-- 拖动提示 -->
+                <TextView
+                    style="@style/Settings.Hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bounce_drag_hint" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
@@ -681,86 +850,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ============ Card 4: OSD 叠加层设置 ============ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/bg_settings_card"
-            android:padding="@dimen/card_padding"
-            android:layout_marginBottom="@dimen/card_margin_bottom">
-
-            <LinearLayout
-                android:id="@+id/title_osd_settings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:clickable="true"
-                android:focusable="true">
-                <TextView
-                    style="@style/Settings.SectionTitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginBottom="0dp"
-                    android:text="投屏 OSD 叠加层" />
-                <ImageView
-                    android:id="@+id/arrow_osd_settings"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    app:srcCompat="@drawable/ic_expand_arrow" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/content_osd_settings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone"
-                android:layout_marginTop="12dp">
-
-                <CheckBox
-                    android:id="@+id/check_osd_time_enabled"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="显示当前时间 OSD"
-                    android:textColor="@color/text_secondary"
-                    android:layout_marginBottom="@dimen/item_spacing" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        style="@style/Settings.Label"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginBottom="0dp"
-                        android:text="时间文字大小" />
-                    <TextView
-                        android:id="@+id/tv_osd_font_size_value"
-                        style="@style/Settings.Value"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_value_badge"
-                        android:paddingLeft="6dp"
-                        android:paddingRight="6dp"
-                        android:paddingTop="2dp"
-                        android:paddingBottom="2dp"
-                        android:text="120" />
-                </LinearLayout>
-                <SeekBar
-                    android:id="@+id/seekbar_osd_font_size"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/item_spacing" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- ============ Card 5: DLNA ============ -->
+        <!-- ============ Card 4: DLNA ============ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -947,7 +1037,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ============ Card: 高级/调试 ============ -->
+        <!-- ============ Card: 高级设置 ============ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -955,7 +1045,7 @@
             android:background="@drawable/bg_settings_card"
             android:padding="@dimen/card_padding"
             android:layout_marginBottom="@dimen/card_margin_bottom">
-
+        
             <LinearLayout
                 android:id="@+id/title_advanced"
                 android:layout_width="match_parent"
@@ -970,14 +1060,14 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginBottom="0dp"
-                    android:text="\u9ad8\u7ea7\u8bbe\u7f6e" />
+                    android:text="高级设置" />
                 <ImageView
                     android:id="@+id/arrow_advanced"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     app:srcCompat="@drawable/ic_expand_arrow" />
             </LinearLayout>
-
+        
             <LinearLayout
                 android:id="@+id/content_advanced"
                 android:layout_width="match_parent"
@@ -985,22 +1075,155 @@
                 android:orientation="vertical"
                 android:visibility="gone"
                 android:layout_marginTop="12dp">
-
+        
+                <!-- 投屏 OSD 叠加层 -->
+                <CheckBox
+                    android:id="@+id/check_osd_time_enabled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="投屏时间 OSD 叠加层"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="4dp" />
+        
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginBottom="0dp"
+                        android:text="OSD 文字大小" />
+                    <TextView
+                        android:id="@+id/tv_osd_font_size_value"
+                        style="@style/Settings.Value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_value_badge"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:text="170" />
+                </LinearLayout>
+                <SeekBar
+                    android:id="@+id/seekbar_osd_font_size"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp" />
+        
+                <!-- 调试日志 -->
                 <CheckBox
                     android:id="@+id/check_debug_log"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="\u8c03\u8bd5\u65e5\u5fd7\u8f93\u51fa"
+                    android:text="调试日志输出"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:layout_marginBottom="4dp" />
-
+        
                 <TextView
                     style="@style/Settings.Hint"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="\u5f00\u542f\u540e\u8f93\u51fa VERBOSE/DEBUG \u7ea7\u522b\u65e5\u5fd7\uff0c\u53ef\u901a\u8fc7 adb logcat \u67e5\u770b"
+                    android:text="开启后输出 VERBOSE/DEBUG 级别日志，可通过 adb logcat 查看"
                     android:layout_marginBottom="8dp" />
+        
+                <!-- 分割线 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/card_stroke"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp" />
+        
+                <!-- 版本信息 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/app_version" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:text="v1.0.1"
+                        android:layout_marginStart="12dp" />
+                </LinearLayout>
+        
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/app_developer" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:text="zombiz"
+                        android:layout_marginStart="12dp" />
+                </LinearLayout>
+        
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/app_source" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/accent"
+                        android:text="github.com/ZOMBIZ/DlnaClock"
+                        android:layout_marginStart="12dp" />
+                </LinearLayout>
+        
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView
+                        style="@style/Settings.Label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/app_license" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:text="Apache License 2.0"
+                        android:layout_marginStart="12dp" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 

@@ -15,7 +15,7 @@ import android.util.Log;
  * 旋转星场 + 色彩渐变 + 螺旋臂
  * 星点沿螺旋臂分布，整体缓慢旋转
  */
-public class GalaxyWallpaper implements WallpaperRenderer {
+public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper {
 
     private static final int ARM_COUNT = 3;
 
@@ -50,11 +50,11 @@ public class GalaxyWallpaper implements WallpaperRenderer {
     private float rotationSpeed = 1.0f;
     private float hueShift = 133f;
     private float scale = 2.7f;
-    private float rotation3d = 54f;
-    private int rotationAxis = 1; // 0=无, 1=X轴, 2=Y轴, 3=Z轴
     private float coreSize = 0.49f;  // 银河中心发光球体大小
 
-    private static final String[] AXIS_OPTIONS = {"无", "X轴", "Y轴", "Z轴"};
+    // 手势叠加
+    private float gestureRotX, gestureRotY;
+    private float gestureScale = 1f;
 
     private final float[] hsvTmp = new float[3];
     private int[] shiftedPalette = new int[PALETTE.length];
@@ -71,8 +71,6 @@ public class GalaxyWallpaper implements WallpaperRenderer {
             new ParamDef("particleCount", "粒子数量", 50, MAX_STARS, 200),
             new ParamDef("rotationSpeed", "旋转速度", 0.5f, 3f, 1.0f, 0.1f),
             new ParamDef("coreSize", "银河中心大小", 0.05f, 0.5f, 0.49f, 0.01f),
-            new ParamDef("axis3d", "旋转轴", AXIS_OPTIONS, 1),
-            new ParamDef("rotation3d", "3D旋转角", 0, 360, 54),
             new ParamDef("hue", "色调", 0, 360, 133),
     };
 
@@ -145,7 +143,7 @@ public class GalaxyWallpaper implements WallpaperRenderer {
         canvas.drawColor(0xFF020208);
 
         canvas.save();
-        canvas.scale(scale, scale, width / 2f, height / 2f);
+        canvas.scale(scale * gestureScale, scale * gestureScale, width / 2f, height / 2f);
 
         float timeSec = elapsedMs / 1000f;
         float rotation = timeSec * 0.05f * rotationSpeed;
@@ -153,18 +151,13 @@ public class GalaxyWallpaper implements WallpaperRenderer {
         canvas.save();
         canvas.translate(centerX, centerY);
 
-        // 应用 3D 旋转透视
-        if (rotation3d > 0.5f && rotationAxis > 0) {
-            camera3d.save();
-            switch (rotationAxis) {
-                case 1: camera3d.rotateX(rotation3d); break;
-                case 2: camera3d.rotateY(rotation3d); break;
-                case 3: camera3d.rotateZ(rotation3d); break;
-            }
-            camera3d.getMatrix(rotationMatrix);
-            camera3d.restore();
-            canvas.concat(rotationMatrix);
-        }
+        // 应用手势 3D 旋转透视（角度制，仅手势控制）
+        camera3d.save();
+        if (gestureRotX != 0f) camera3d.rotateX(gestureRotX);
+        if (gestureRotY != 0f) camera3d.rotateY(gestureRotY);
+        camera3d.getMatrix(rotationMatrix);
+        camera3d.restore();
+        canvas.concat(rotationMatrix);
 
         canvas.translate(-centerX, -centerY);
 
@@ -226,12 +219,22 @@ public class GalaxyWallpaper implements WallpaperRenderer {
         int newCount = (int) params.getFloat("particleCount", 200);
         rotationSpeed = params.getFloat("rotationSpeed", 1.0f);
         coreSize = params.getFloat("coreSize", 0.49f);
-        rotation3d = params.getFloat("rotation3d", 54f);
-        rotationAxis = (int) params.getFloat("axis3d", 1);
         hueShift = params.getFloat("hue", 133f);
         if (newCount != starCount) {
             starCount = newCount;
             if (initialized) allocateStars();
+        }
+    }
+
+    @Override
+    public void applyGesture(float rotX, float rotY, float offsetX, float offsetY, float scale) {
+        gestureRotX = rotX;
+        gestureRotY = rotY;
+        gestureScale = scale;
+        // 平移：中心偏移（星点与旋转都基于中心，整体跟随移动）
+        if (initialized) {
+            centerX = width / 2f + offsetX;
+            centerY = height / 2f + offsetY;
         }
     }
 

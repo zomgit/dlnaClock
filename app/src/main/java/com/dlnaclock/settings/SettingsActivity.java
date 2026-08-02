@@ -52,6 +52,9 @@ import com.dlnaclock.screensaver.wallpaper.ScriptManager;
 import com.dlnaclock.screensaver.wallpaper.WallpaperFactory;
 import com.dlnaclock.screensaver.wallpaper.WallpaperRenderer;
 
+import android.text.Editable;
+import android.text.TextWatcher;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -102,9 +105,17 @@ public class SettingsActivity extends AppCompatActivity {
 
     // Anti burn-in settings
     private CheckBox antiBurnInCheck;
-    private CheckBox pixelShiftCheck;
     private SeekBar burnInIntervalSeekBar;
     private TextView burnInIntervalValue;
+    private SeekBar burnInOffsetRangeSeekBar;
+    private TextView burnInOffsetRangeValue;
+    private RadioGroup burnInModeRadioGroup;
+    private LinearLayout layoutBurnInShift;
+    private LinearLayout layoutBurnInBounce;
+    private SeekBar bounceAngleSeekBar;
+    private TextView bounceAngleValue;
+    private SeekBar bounceSpeedSeekBar;
+    private TextView bounceSpeedValue;
 
     // Background settings
     private RadioGroup bgModeRadioGroup;
@@ -195,7 +206,6 @@ public class SettingsActivity extends AppCompatActivity {
     private void setupCollapsibleCards() {
         setupCardToggle(R.id.title_clock_settings, R.id.arrow_clock_settings, R.id.content_clock_settings);
         setupCardToggle(R.id.title_anti_burn_in, R.id.arrow_anti_burn_in, R.id.content_anti_burn_in);
-        setupCardToggle(R.id.title_osd_settings, R.id.arrow_osd_settings, R.id.content_osd_settings);
         setupCardToggle(R.id.title_background, R.id.arrow_background, R.id.content_background);
         setupCardToggle(R.id.title_dlna, R.id.arrow_dlna, R.id.content_dlna);
         setupCardToggle(R.id.title_airplay, R.id.arrow_airplay, R.id.content_airplay);
@@ -475,9 +485,17 @@ public class SettingsActivity extends AppCompatActivity {
 
         // === Anti burn-in ===
         antiBurnInCheck = (CheckBox) findViewById(R.id.check_anti_burn_in);
-        pixelShiftCheck = (CheckBox) findViewById(R.id.check_pixel_shift);
         burnInIntervalSeekBar = (SeekBar) findViewById(R.id.seekbar_burn_in_interval);
         burnInIntervalValue = (TextView) findViewById(R.id.tv_burn_in_interval_value);
+        burnInOffsetRangeSeekBar = (SeekBar) findViewById(R.id.seekbar_burn_in_offset_range);
+        burnInOffsetRangeValue = (TextView) findViewById(R.id.tv_burn_in_offset_range_value);
+        burnInModeRadioGroup = (RadioGroup) findViewById(R.id.radio_burn_in_mode);
+        layoutBurnInShift = (LinearLayout) findViewById(R.id.layout_burn_in_shift);
+        layoutBurnInBounce = (LinearLayout) findViewById(R.id.layout_burn_in_bounce);
+        bounceAngleSeekBar = (SeekBar) findViewById(R.id.seekbar_bounce_angle);
+        bounceAngleValue = (TextView) findViewById(R.id.tv_bounce_angle_value);
+        bounceSpeedSeekBar = (SeekBar) findViewById(R.id.seekbar_bounce_speed);
+        bounceSpeedValue = (TextView) findViewById(R.id.tv_bounce_speed_value);
         if (antiBurnInCheck != null) {
             antiBurnInCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
@@ -486,16 +504,8 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             });
         }
-        if (pixelShiftCheck != null) {
-            pixelShiftCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    PreferenceHelper.setPixelShiftEnabled(isChecked);
-                }
-            });
-        }
         if (burnInIntervalSeekBar != null) {
-            burnInIntervalSeekBar.setMax(118);
+            burnInIntervalSeekBar.setMax(118); // 2~120s
             burnInIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -507,6 +517,63 @@ public class SettingsActivity extends AppCompatActivity {
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     PreferenceHelper.setBurnInInterval(seekBar.getProgress() + 2);
+                }
+            });
+        }
+        if (burnInOffsetRangeSeekBar != null) {
+            burnInOffsetRangeSeekBar.setMax(29); // 1~30%
+            burnInOffsetRangeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    int range = progress + 1;
+                    if (burnInOffsetRangeValue != null) burnInOffsetRangeValue.setText(range + "%");
+                }
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {}
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    PreferenceHelper.setBurnInOffsetRange(seekBar.getProgress() + 1);
+                }
+            });
+        }
+        if (burnInModeRadioGroup != null) {
+            burnInModeRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(RadioGroup group, int checkedId) {
+                    int mode = (checkedId == R.id.radio_burn_in_bounce) ? 1 : 0;
+                    PreferenceHelper.setAntiBurnInMode(mode);
+                    updateBurnInModeVisibility(mode);
+                }
+            });
+        }
+        if (bounceAngleSeekBar != null) {
+            bounceAngleSeekBar.setMax(90); // 0~90°
+            bounceAngleSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (bounceAngleValue != null) bounceAngleValue.setText(progress + "°");
+                }
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {}
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    PreferenceHelper.setBounceAngleRange(seekBar.getProgress());
+                }
+            });
+        }
+        if (bounceSpeedSeekBar != null) {
+            bounceSpeedSeekBar.setMax(29); // 1~30%/s
+            bounceSpeedSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    int speed = progress + 1;
+                    if (bounceSpeedValue != null) bounceSpeedValue.setText(speed + "%");
+                }
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {}
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    PreferenceHelper.setBounceSpeed(seekBar.getProgress() + 1);
                 }
             });
         }
@@ -1128,13 +1195,16 @@ public class SettingsActivity extends AppCompatActivity {
         LinearLayout.LayoutParams cteParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
         holder.customTextLayout.addView(holder.customTextEdit, cteParams);
-        holder.customTextEdit.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+        // 实时同步自定义文本到 config（解决失焦才保存导致内容丢失的问题）
+        holder.customTextEdit.addTextChangedListener(new TextWatcher() {
             @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    config.setCustomText(holder.customTextEdit.getText().toString().trim());
-                    saveRowConfig(rowIndex, config);
-                }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(Editable s) {
+                config.setCustomText(s.toString().trim());
+                saveRowConfig(rowIndex, config);
             }
         });
 
@@ -1265,7 +1335,10 @@ public class SettingsActivity extends AppCompatActivity {
         holder.statusItemsBtn.setVisibility(isStatus ? View.VISIBLE : View.GONE);
         holder.rotateLayout.setVisibility(isStatus ? View.VISIBLE : View.GONE);
         holder.rotateSeekBar.setVisibility(isStatus ? View.VISIBLE : View.GONE);
-        holder.customTextLayout.setVisibility(isCustom ? View.VISIBLE : View.GONE);
+        // 自定义文本输入框：CUSTOM 行始终显示；STATUS 行勾选"自定义内容"时显示
+        boolean showCustomText = isCustom
+                || (isStatus && (config.getStatusItems() & ClockConfig.STATUS_CUSTOM) != 0);
+        holder.customTextLayout.setVisibility(showCustomText ? View.VISIBLE : View.GONE);
     }
 
     private int indexOfChild(ViewGroup parent, View child) {
@@ -1280,6 +1353,31 @@ public class SettingsActivity extends AppCompatActivity {
         rowSettingsContainer.removeAllViews();
         for (int i = 0; i < 3; i++) {
             buildSingleRow(i);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // 保存所有行的自定义文本编辑（防止用户直接按返回键未触发焦点变化）
+        for (int i = 0; i < 3; i++) {
+            RowViewHolder h = rowHolders[i];
+            if (h != null && h.customTextEdit != null && rowConfigs[i] != null) {
+                String text = h.customTextEdit.getText().toString().trim();
+                if (!text.equals(rowConfigs[i].getCustomText())) {
+                    rowConfigs[i].setCustomText(text);
+                    PreferenceHelper.setMinimalRowConfig(activeProfile, i, rowConfigs[i]);
+                }
+            }
+            // 同时保存自定义格式编辑
+            if (h != null && h.customFormatEdit != null && rowConfigs[i] != null
+                    && h.customFormatEdit.getVisibility() == View.VISIBLE) {
+                String fmt = h.customFormatEdit.getText().toString().trim();
+                if (!fmt.isEmpty() && !fmt.equals(rowConfigs[i].getFormat())) {
+                    rowConfigs[i].setFormat(fmt);
+                    PreferenceHelper.setMinimalRowConfig(activeProfile, i, rowConfigs[i]);
+                }
+            }
         }
     }
 
@@ -1329,6 +1427,8 @@ public class SettingsActivity extends AppCompatActivity {
                         config.setStatusItems(newItems);
                         saveRowConfig(rowIndex, config);
                         updateStatusButtonText(holder, config);
+                        // 勾选/取消"自定义内容"时同步显示/隐藏自定义文本输入框
+                        updateRowVisibility(holder, config);
                     }
                 })
                 .setNegativeButton("取消", null)
@@ -1531,11 +1631,28 @@ public class SettingsActivity extends AppCompatActivity {
         if (antiBurnInCheck != null) {
             antiBurnInCheck.setChecked(PreferenceHelper.isAntiBurnInEnabled());
         }
-        if (pixelShiftCheck != null) {
-            pixelShiftCheck.setChecked(PreferenceHelper.isPixelShiftEnabled());
-        }
         if (burnInIntervalSeekBar != null) {
             burnInIntervalSeekBar.setProgress(PreferenceHelper.getBurnInInterval() - 2);
+        }
+        if (burnInOffsetRangeSeekBar != null) {
+            int offsetRange = PreferenceHelper.getBurnInOffsetRange();
+            burnInOffsetRangeSeekBar.setProgress(offsetRange - 1);
+            if (burnInOffsetRangeValue != null) burnInOffsetRangeValue.setText(offsetRange + "%");
+        }
+        if (burnInModeRadioGroup != null) {
+            int mode = PreferenceHelper.getAntiBurnInMode();
+            burnInModeRadioGroup.check(mode == 1 ? R.id.radio_burn_in_bounce : R.id.radio_burn_in_shift);
+            updateBurnInModeVisibility(mode);
+        }
+        if (bounceAngleSeekBar != null) {
+            int angle = PreferenceHelper.getBounceAngleRange();
+            bounceAngleSeekBar.setProgress(angle);
+            if (bounceAngleValue != null) bounceAngleValue.setText(angle + "°");
+        }
+        if (bounceSpeedSeekBar != null) {
+            int speed = PreferenceHelper.getBounceSpeed();
+            bounceSpeedSeekBar.setProgress(speed - 1);
+            if (bounceSpeedValue != null) bounceSpeedValue.setText(speed + "%");
         }
         if (bgModeRadioGroup != null) {
             checkRadioByBgMode(PreferenceHelper.getBackgroundMode());
@@ -1716,6 +1833,16 @@ public class SettingsActivity extends AppCompatActivity {
         if (checkedId == R.id.radio_bg_wallpaper) return 3;
         if (checkedId == R.id.radio_bg_custom) return 4;
         return -1;
+    }
+
+    /** updateBurnInModeVisibility - 根据防烧屏方式显示/隐藏对应参数组 */
+    private void updateBurnInModeVisibility(int mode) {
+        if (layoutBurnInShift != null) {
+            layoutBurnInShift.setVisibility(mode == 1 ? View.GONE : View.VISIBLE);
+        }
+        if (layoutBurnInBounce != null) {
+            layoutBurnInBounce.setVisibility(mode == 1 ? View.VISIBLE : View.GONE);
+        }
     }
 
     /** checkRadioByBgMode - 背景模式转 RadioGroup 选中 */

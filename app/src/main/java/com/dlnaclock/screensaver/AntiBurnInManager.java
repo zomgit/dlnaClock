@@ -9,18 +9,19 @@ import java.util.Random;
 
 /**
  * AntiBurnInManager - 防烧屏管理器
- * 提供两种防烧屏机制：
- * 1. 位置随机偏移：每 N 秒偏移 ±10% 屏幕宽高
- * 2. 像素微偏移：每 5 秒偏移 1-5px
+ * 合并两种防烧屏机制为一个开关：
+ * 1. 位置随机偏移：每 N 秒偏移 ±offsetRange% 屏幕宽高
+ * 2. 像素微偏移：每 5 秒偏移 1~pixelRange px，幅度由偏移幅度（百分比）推导
  * 偏移值应用到 Canvas.translate()
  */
 public class AntiBurnInManager {
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private Random random = new Random();
-    private boolean enabled = false;          // 位置偏移开关
-    private boolean pixelShiftEnabled = false; // 像素微偏移开关
+    private boolean enabled = false;          // 防烧屏总开关
     private int intervalSeconds = 30;          // 位置偏移间隔（秒）
+    private int offsetRangePercent = 15;       // 偏移幅度（屏幕百分比）
+    private int pixelRange = 8;                // 像素微偏移幅度（px），由偏移幅度推导
 
     private float offsetX = 0;
     private float offsetY = 0;
@@ -48,22 +49,18 @@ public class AntiBurnInManager {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         this.enabled = PreferenceHelper.isAntiBurnInEnabled();
-        this.pixelShiftEnabled = PreferenceHelper.isPixelShiftEnabled();
         this.intervalSeconds = PreferenceHelper.getBurnInInterval();
+        this.offsetRangePercent = PreferenceHelper.getBurnInOffsetRange();
+        // 像素微移幅度由偏移幅度推导：15% -> 8px，与旧默认值一致
+        this.pixelRange = Math.max(1, Math.round(offsetRangePercent * 0.5f));
 
         if (enabled) {
             schedulePositionMove();
-        } else {
-            // 关闭时重置位置偏移量，回到用户设定位置
-            handler.removeCallbacks(positionMoveRunnable);
-            resetOffsets();
-        }
-        if (pixelShiftEnabled) {
             schedulePixelShift();
         } else {
-            // 关闭时重置像素偏移量
+            handler.removeCallbacks(positionMoveRunnable);
             handler.removeCallbacks(pixelShiftRunnable);
-            resetPixelOffsets();
+            resetOffsets();
         }
     }
 
@@ -85,9 +82,9 @@ public class AntiBurnInManager {
         @Override
         public void run() {
             if (enabled && screenWidth > 0 && screenHeight > 0) {
-                // Random offset within 10% of screen size
-                float maxOffsetX = screenWidth * 0.1f;
-                float maxOffsetY = screenHeight * 0.1f;
+                // Random offset within offsetRangePercent% of screen size
+                float maxOffsetX = screenWidth * (offsetRangePercent / 100f);
+                float maxOffsetY = screenHeight * (offsetRangePercent / 100f);
                 offsetX = (random.nextFloat() - 0.5f) * 2 * maxOffsetX;
                 offsetY = (random.nextFloat() - 0.5f) * 2 * maxOffsetY;
 
@@ -100,10 +97,10 @@ public class AntiBurnInManager {
     private Runnable pixelShiftRunnable = new Runnable() {
         @Override
         public void run() {
-            if (pixelShiftEnabled) {
-                // Random pixel offset 1-5 pixels
-                pixelOffsetX = (random.nextInt(5) + 1) * (random.nextBoolean() ? 1 : -1);
-                pixelOffsetY = (random.nextInt(5) + 1) * (random.nextBoolean() ? 1 : -1);
+            if (enabled) {
+                // Random pixel offset 1~pixelRange pixels
+                pixelOffsetX = (random.nextInt(pixelRange) + 1) * (random.nextBoolean() ? 1 : -1);
+                pixelOffsetY = (random.nextInt(pixelRange) + 1) * (random.nextBoolean() ? 1 : -1);
 
                 notifyOffsetChanged();
             }
@@ -125,21 +122,16 @@ public class AntiBurnInManager {
         return offsetY + pixelOffsetY;
     }
 
-    /** resetOffsets - 重置位置偏移量为零，回到用户设定位置 */
+    /** resetOffsets - 重置所有偏移量为零 */
     private void resetOffsets() {
         offsetX = 0;
         offsetY = 0;
-        notifyOffsetChanged();
-    }
-
-    /** resetPixelOffsets - 重置像素微偏移量为零 */
-    private void resetPixelOffsets() {
         pixelOffsetX = 0;
         pixelOffsetY = 0;
         notifyOffsetChanged();
     }
 
     public boolean isEnabled() {
-        return enabled || pixelShiftEnabled;
+        return enabled;
     }
 }

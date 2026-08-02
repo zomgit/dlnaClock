@@ -5,6 +5,8 @@
     <string name="switch_style">切换表盘</string>
     <string name="switch_bg">切换样式</string>
     <string name="switch_wallpaper">切换壁纸</string>
+    <string name="wallpaper_params">壁纸参数</string>
+    <string name="close">关闭</string>
     <string name="exit">退出</string>
     <string name="menu_settings">设置</string>
     <string name="menu_clock_settings">表盘设置</string>
@@ -48,9 +50,20 @@
 
     <!-- Anti burn-in -->
     <string name="anti_burn_in_settings">防烧屏设置</string>
-    <string name="anti_burn_in">位置随机移动</string>
-    <string name="pixel_shift">像素微偏移</string>
+    <string name="anti_burn_in">启用防烧屏</string>
+    <string name="anti_burn_in_desc">内容会定期在屏幕内随机移动，避免长时间静止导致屏幕残留（烧屏）</string>
+    <string name="burn_in_mode">防烧屏方式</string>
+    <string name="burn_in_mode_shift">随机偏移</string>
+    <string name="burn_in_mode_bounce">弹射运动</string>
     <string name="burn_in_interval">移动间隔</string>
+    <string name="burn_in_interval_desc">每隔多久移动一次内容</string>
+    <string name="burn_in_offset_range">偏移幅度</string>
+    <string name="burn_in_offset_range_desc">每次移动的距离，屏幕宽高的百分比</string>
+    <string name="bounce_angle_range">弹射角度</string>
+    <string name="bounce_angle_desc">每次撞边反弹时，在镜面反射基础上随机偏转的角度（0°=纯镜面反弹）</string>
+    <string name="bounce_speed">移动速度</string>
+    <string name="bounce_speed_desc">每秒移动的距离（屏幕宽度的百分比）</string>
+    <string name="bounce_drag_hint">拖动：在屏保中可手指拖动时钟，松手后沿拖动方向继续弹射</string>
 
     <!-- Background -->
     <string name="background_settings">背景设置</string>
@@ -77,4 +90,10 @@
     <string name="airplay_device_name">AirPlay设备名</string>
     <string name="airplay_disabled">AirPlay已关闭</string>
     <string name="airplay_enabled">AirPlay已开启</string>
+
+    <!-- About -->
+    <string name="app_version">版本</string>
+    <string name="app_developer">开发者</string>
+    <string name="app_license">开源协议</string>
+    <string name="app_source">开源地址</string>
 </resources>

@@ -14,7 +14,7 @@ import android.os.Bundle;
  * 阿基米德螺旋点阵 + 旋转 + RadialGradient 发光
  * 200 个螺旋点，预计算 sin/cos LUT
  */
-public class HoloSpiralWallpaper implements WallpaperRenderer {
+public class HoloSpiralWallpaper implements WallpaperRenderer, GestureAwareWallpaper {
 
     private static final int LUT_SIZE = 360;
     private static final int MAX_POINTS = 400;  // 小米3骁龙800安全上限
@@ -50,11 +50,12 @@ public class HoloSpiralWallpaper implements WallpaperRenderer {
     private float hueShift = 58f;
     private float glowIntensity = 0.4f;
     private float particleSize = 2.6f;
-    private float rotation3d = 248f;
-    private int rotationAxis = 1; // 0=无, 1=X轴, 2=Y轴, 3=Z轴
     private float particleGlow = 0.45f; // 粒子发光强度 0~1
 
-    private static final String[] AXIS_OPTIONS = {"无", "X轴", "Y轴", "Z轴"};
+    // 手势叠加
+    private float gestureRotX, gestureRotY;
+    private float gestureOffsetX, gestureOffsetY;
+    private float gestureScale = 1f;
 
     // HSV 复用数组
     private final float[] hsvTmp = new float[3];
@@ -74,8 +75,6 @@ public class HoloSpiralWallpaper implements WallpaperRenderer {
             new ParamDef("pointCount", "粒子数量", 50, MAX_POINTS, 73),
             new ParamDef("particleSize", "粒子大小", 0.5f, 3f, 2.6f, 0.1f),
             new ParamDef("particleGlow", "粒子发光", 0f, 1f, 0.45f, 0.05f),
-            new ParamDef("axis3d", "旋转轴", AXIS_OPTIONS, 1),
-            new ParamDef("rotation3d", "3D旋转角", 0, 360, 248),
             new ParamDef("hue", "色调偏移", 0, 360, 58),
             new ParamDef("glow", "中心发光", 0f, 1f, 0.4f, 0.05f),
     };
@@ -144,20 +143,15 @@ public class HoloSpiralWallpaper implements WallpaperRenderer {
         int rotIdx = ((int) rotationDeg) % LUT_SIZE;
 
         canvas.save();
-        canvas.translate(centerX, centerY);
+        canvas.translate(centerX + gestureOffsetX, centerY + gestureOffsetY);
 
-        // 应用 3D 旋转透视效果
-        if (rotation3d > 0.5f && rotationAxis > 0) {
-            camera3d.save();
-            switch (rotationAxis) {
-                case 1: camera3d.rotateX(rotation3d); break;
-                case 2: camera3d.rotateY(rotation3d); break;
-                case 3: camera3d.rotateZ(rotation3d); break;
-            }
-            camera3d.getMatrix(rotationMatrix);
-            camera3d.restore();
-            canvas.concat(rotationMatrix);
-        }
+        // 应用手势 3D 旋转透视（角度制，仅手势控制）
+        camera3d.save();
+        if (gestureRotX != 0f) camera3d.rotateX(gestureRotX);
+        if (gestureRotY != 0f) camera3d.rotateY(gestureRotY);
+        camera3d.getMatrix(rotationMatrix);
+        camera3d.restore();
+        canvas.concat(rotationMatrix);
 
         canvas.rotate(rotationDeg);
 
@@ -224,14 +218,25 @@ public class HoloSpiralWallpaper implements WallpaperRenderer {
         int newCount = (int) params.getFloat("pointCount", 73);
         particleSize = params.getFloat("particleSize", 2.6f);
         particleGlow = params.getFloat("particleGlow", 0.45f);
-        rotation3d = params.getFloat("rotation3d", 248f);
-        rotationAxis = (int) params.getFloat("axis3d", 1);
         hueShift = params.getFloat("hue", 58f);
         glowIntensity = params.getFloat("glow", 0.4f);
         if (newArms != armCount || newCount != pointCount) {
             armCount = newArms;
             pointCount = newCount;
             if (initialized) allocateArrays();
+        }
+    }
+
+    @Override
+    public void applyGesture(float rotX, float rotY, float offsetX, float offsetY, float scale) {
+        gestureRotX = rotX;
+        gestureRotY = rotY;
+        gestureOffsetX = offsetX;
+        gestureOffsetY = offsetY;
+        gestureScale = scale;
+        // 平移：中心偏移；缩放：螺旋半径倍率
+        if (initialized) {
+            maxRadius = Math.min(width, height) * 0.42f * gestureScale;
         }
     }
 

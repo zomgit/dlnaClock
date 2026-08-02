@@ -18,6 +18,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.dlnaclock.util.PreferenceHelper;
+import com.dlnaclock.screensaver.wallpaper.GestureAwareWallpaper;
 import com.dlnaclock.screensaver.wallpaper.ParamStore;
 import com.dlnaclock.screensaver.wallpaper.WallpaperRenderer;
 import com.dlnaclock.screensaver.wallpaper.WallpaperFactory;
@@ -64,6 +65,9 @@ public class BackgroundManager {
     private Paint errorPaint;
     private Camera errorCamera;
     private Matrix errorMatrix;
+
+    // 手势变换（一指旋转 / 双指平移缩放），仅非视频模式应用
+    private GestureTransform gestureTransform;
 
     public BackgroundManager(Context context) {
         this.context = context;
@@ -199,7 +203,26 @@ public class BackgroundManager {
         loadConfig();
     }
 
+    /** setGestureTransform - 注入手势变换（由 ScreenSaverView 创建并注入） */
+    public void setGestureTransform(GestureTransform transform) {
+        this.gestureTransform = transform;
+    }
+
     public void draw(Canvas canvas, int width, int height) {
+        // 手势变换：视频背景（SurfaceView 独立图层）不适用，其余模式先铺黑底再变换
+        boolean gestureActive = gestureTransform != null && !gestureTransform.isIdentity()
+                && mode != MODE_VIDEO;
+        int gestureSaveCount = -1;
+        if (gestureActive) {
+            gestureSaveCount = canvas.save();
+            canvas.drawColor(Color.BLACK); // 旋转后露出的边缘显示黑色
+            boolean awareWallpaper = mode == MODE_WALLPAPER
+                    && wallpaperRenderer instanceof GestureAwareWallpaper;
+            if (!awareWallpaper) {
+                gestureTransform.applyTo(canvas, width, height);
+            }
+        }
+
         switch (mode) {
             case MODE_COLOR:
                 canvas.drawColor(backgroundColor);
@@ -240,6 +263,13 @@ public class BackgroundManager {
                     wallpaperStartTime = System.currentTimeMillis();
                 }
                 if (wallpaperRenderer != null) {
+                    // 手势感知壁纸：在绘制前注入手势参数（由壁纸自行应用变换）
+                    if (gestureActive && wallpaperRenderer instanceof GestureAwareWallpaper) {
+                        GestureAwareWallpaper aware = (GestureAwareWallpaper) wallpaperRenderer;
+                        aware.applyGesture(gestureTransform.getRotX(), gestureTransform.getRotY(),
+                                gestureTransform.getOffsetX(), gestureTransform.getOffsetY(),
+                                gestureTransform.getScale());
+                    }
                     // 安全保护：save canvas 确保即使壁纸崩溃也能恢复
                     int saveCount = canvas.save();
                     boolean drawSuccess = false;
@@ -263,6 +293,11 @@ public class BackgroundManager {
                     drawError(canvas, width, height);
                 }
                 break;
+        }
+
+        // 恢复手势变换前的画布状态
+        if (gestureSaveCount >= 0) {
+            canvas.restoreToCount(gestureSaveCount);
         }
     }
 

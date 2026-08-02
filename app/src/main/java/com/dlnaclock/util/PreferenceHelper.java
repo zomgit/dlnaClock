@@ -240,6 +240,7 @@ public class PreferenceHelper {
     }
 
     // === 防烧屏设置 ===
+    /** 防烧屏总开关（合并位置偏移+像素微偏移） */
     public static boolean isAntiBurnInEnabled() {
         return getPrefs().getBoolean("anti_burn_in", false);
     }
@@ -248,12 +249,16 @@ public class PreferenceHelper {
         getPrefs().edit().putBoolean("anti_burn_in", enabled).apply();
     }
 
+    /** @deprecated 已合并到 isAntiBurnInEnabled，保留兼容 */
+    @Deprecated
     public static boolean isPixelShiftEnabled() {
-        return getPrefs().getBoolean("pixel_shift", false);
+        return isAntiBurnInEnabled();
     }
 
+    /** @deprecated 已合并到 setAntiBurnInEnabled */
+    @Deprecated
     public static void setPixelShiftEnabled(boolean enabled) {
-        getPrefs().edit().putBoolean("pixel_shift", enabled).apply();
+        setAntiBurnInEnabled(enabled);
     }
 
     public static int getBurnInInterval() {
@@ -262,6 +267,56 @@ public class PreferenceHelper {
 
     public static void setBurnInInterval(int seconds) {
         getPrefs().edit().putInt("burn_in_interval", seconds).apply();
+    }
+
+    /** 偏移幅度（屏幕百分比），默认 15% */
+    public static int getBurnInOffsetRange() {
+        return getPrefs().getInt("burn_in_offset_range", 15); // percent
+    }
+
+    public static void setBurnInOffsetRange(int percent) {
+        getPrefs().edit().putInt("burn_in_offset_range", percent).apply();
+    }
+
+    /**
+     * @deprecated 像素微移已合并进偏移幅度，由偏移幅度推导（15% → 8px）
+     */
+    @Deprecated
+    public static int getBurnInPixelRange() {
+        return Math.max(1, Math.round(getBurnInOffsetRange() * 0.5f)); // percent * 0.5 -> px
+    }
+
+    /** @deprecated 像素微移已合并进偏移幅度，无需单独设置 */
+    @Deprecated
+    public static void setBurnInPixelRange(int pixels) {
+        getPrefs().edit().putInt("burn_in_pixel_range", pixels).apply();
+    }
+
+    /** 防烧屏方式：0=随机偏移 1=弹射运动，默认随机偏移 */
+    public static int getAntiBurnInMode() {
+        return getPrefs().getInt("anti_burn_in_mode", 0);
+    }
+
+    public static void setAntiBurnInMode(int mode) {
+        getPrefs().edit().putInt("anti_burn_in_mode", mode).apply();
+    }
+
+    /** 弹射每次撞边随机偏移角度（0~90°），默认 30° */
+    public static int getBounceAngleRange() {
+        return getPrefs().getInt("bounce_angle_range", 30); // degrees
+    }
+
+    public static void setBounceAngleRange(int degrees) {
+        getPrefs().edit().putInt("bounce_angle_range", degrees).apply();
+    }
+
+    /** 弹射移动速度（%屏幕宽/秒），默认 8 */
+    public static int getBounceSpeed() {
+        return getPrefs().getInt("bounce_speed", 8); // percent of screen width per second
+    }
+
+    public static void setBounceSpeed(int speed) {
+        getPrefs().edit().putInt("bounce_speed", speed).apply();
     }
 
     // === 背景设置 ===
@@ -411,7 +466,7 @@ public class PreferenceHelper {
     }
 
     public static boolean getOsdTimeEnabled() {
-        return getPrefs().getBoolean("osd_time_enabled", true);
+        return getPrefs().getBoolean("osd_time_enabled", false);
     }
 
     public static void setOsdTimeEnabled(boolean enabled) {

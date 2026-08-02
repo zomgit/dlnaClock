@@ -15,20 +15,18 @@ public class NeonClockRenderer implements ClockRenderer {
     private Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint datePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-    private SimpleDateFormat timeFormatNoSec = new SimpleDateFormat("HH:mm", Locale.getDefault());
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     @Override
     public void draw(Canvas canvas, int width, int height, Calendar time, ClockConfig config) {
-        int fontSize = config.getFontSize();
         float centerX = width * config.getPositionX();
         float centerY = height * config.getPositionY();
 
         // Disable hardware acceleration for blur mask filter
         canvas.save();
 
-        String timeStr = config.isShowSeconds() ?
-                timeFormat.format(time.getTime()) : timeFormatNoSec.format(time.getTime());
+        String timeStr = timeFormat.format(time.getTime());
+        int fontSize = config.getFontSizePx(width, timeStr, textPaint);
 
         // Outer glow layer
         glowPaint.setColor(config.getFontColor());
@@ -52,7 +50,7 @@ public class NeonClockRenderer implements ClockRenderer {
         canvas.drawText(timeStr, centerX, centerY, textPaint);
 
         // Draw date with neon effect
-        if (config.isShowDate()) {
+        {
             String dateStr = dateFormat.format(time.getTime());
 
             // Date glow
@@ -71,5 +69,31 @@ public class NeonClockRenderer implements ClockRenderer {
         }
 
         canvas.restore();
+    }
+
+    @Override
+    public float[] getContentBounds(int width, int height, Calendar time, ClockConfig config) {
+        // 用参考串测量，确保边界稳定不随文本内容抖动
+        String refTime = ClockConfig.generateReferenceString("HH:mm:ss");
+        String refDate = ClockConfig.generateReferenceString("yyyy-MM-dd");
+        int fontSize = config.getFontSizePx(width, refTime, textPaint);
+
+        float centerX = width * config.getPositionX();
+        float centerY = height * config.getPositionY();
+
+        // 主行宽度
+        textPaint.setTextSize(fontSize);
+        textPaint.setTextAlign(Paint.Align.CENTER);
+        float mainW = textPaint.measureText(refTime);
+
+        // 副行（日期）宽度
+        datePaint.setTextSize(fontSize * 0.3f);
+        float dateW = datePaint.measureText(refDate);
+
+        float blockW = Math.max(mainW, dateW);
+        float top = centerY - fontSize * 0.85f;
+        float bottom = centerY + fontSize * 0.6f + fontSize * 0.3f * 0.85f;
+
+        return new float[]{centerX - blockW / 2f, top, centerX + blockW / 2f, bottom};
     }
 }
