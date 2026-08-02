@@ -158,3 +158,6 @@ fabric.properties
 
 # Project task spec files at root
 *_task-*.md
+
+# Build output logs
+build_out*.txt

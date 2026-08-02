@@ -19,4 +19,11 @@ public interface ClockRenderer {
      * @param config 时钟配置（样式/字号/位置等）
      */
     void draw(Canvas canvas, int width, int height, Calendar time, ClockConfig config);
+
+    /**
+     * getContentBounds - 获取时钟内容的绘制边界（相对画布左上角，无防烧屏偏移时）
+     * 用于防烧屏弹射模式的碰撞边界计算
+     * @return [left, top, right, bottom]，无法计算时返回 null
+     */
+    float[] getContentBounds(int width, int height, Calendar time, ClockConfig config);
 }

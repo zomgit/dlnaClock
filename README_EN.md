@@ -9,13 +9,14 @@ A **DLNA + AirPlay casting receiver** designed for Android TV / old phones / tab
 ### 🕐 Clock Screensaver
 - **Multiple clock styles**: Digital, Analog, Custom multi-row (Minimal)
 - **Highly customizable**: Font, color, size, position, 12/24-hour format, custom format strings
-- **Anti burn-in**: Random position shifting + pixel micro-offset, protecting OLED/AMOLED screens
+- **Anti burn-in**: Two modes — random shift / bounce motion (adjustable offset range, bounce angle and speed); bounce mode supports dragging the clock with a finger, protecting OLED/AMOLED screens
 - **Auto-start on boot**: Supports BOOT_COMPLETED auto-launch
 
 ### 🎨 Dynamic Wallpaper Engine
 - **13 built-in wallpapers**: Holo Spiral, Aurora V1/V2, Phase Beam, Night Sky, Forest, Deep Sea, Magic Smoke, Galaxy, Cube, Dynamic Gradient V1/V2, Matrix Rain
 - **Lua script extension**: Load user-defined Lua wallpaper scripts via LuaJ engine
-- **Real-time parameter control**: On-screen floating control panel with instant SeekBar feedback
+- **Real-time parameter control**: Floating parameter panel with independent toggle, instant SeekBar feedback, tap outside the panel to close
+- **Gesture control**: One-finger drag for 3D perspective rotation, two-finger pan / pinch zoom; each wallpaper keeps its own gesture state across switches; panel shows live rotation angles with one-tap rotation reset
 - **Zero-allocation rendering**: Canvas 2D pure CPU drawing, compatible with low-end devices (minSdk 19)
 - **Background modes**: Solid color / Static image (5 fit modes) / Video loop / Dynamic wallpaper
 
@@ -32,6 +33,26 @@ A **DLNA + AirPlay casting receiver** designed for Android TV / old phones / tab
 ### 🎵 Media Playback (built-in for casting; you can also select your own installed player in settings)
 - **Video player**: IJKPlayer (FFmpeg) with hardware/software decode switching, aspect ratio adaptation
 - **Music player**: Dedicated Activity with landscape/portrait layouts
+
+## Changelog
+
+### Latest update
+
+#### ➕ Added
+
+- **Wallpaper gesture control**: One-finger drag for 3D perspective rotation (X-axis ±90° / Y-axis ±180° clamped), two-finger pan and pinch zoom (0.5x–3x); each wallpaper's gesture state is saved independently across switches
+- **Wallpaper parameter panel enhancements**: Dedicated "Wallpaper Params" button toggles the panel independently (no longer auto-hides with the control bar); live display of gesture rotation angles; "Reset Rotation" clears rotation only (keeps pan/zoom), separated from the full "Reset Defaults"; tap outside the panel to close; auto-resizes on screen rotation
+- **Anti burn-in bounce mode**: Clock content moves at constant speed and bounces off screen edges with mirror reflection + random angle deflection; supports dragging the clock with a finger and resuming bounce along the drag direction on release; adjustable bounce angle (0–90°) and speed (1–30% screen width/s)
+- **"About" info in settings**: Shows version, developer, license and source URL
+
+#### 🔧 Changed
+
+- **Wallpaper 3D rotation is now gesture-only**: Removed the static rotation-axis/rotation-angle params from the HoloSpiral / Galaxy wallpapers
+- **Anti burn-in settings reworked**: The former "random position shift" and "pixel shift" toggles are merged into a single "Enable anti burn-in" switch, with a new "offset range" (1–30%) setting; pixel shift amplitude is derived from the offset range
+- **OSD time display now off by default**
+- **Custom clock settings**: Custom text / custom format now save in real time, fixing content loss when pressing back directly
+- **Clock renderers**: All renderers implement a content-bounds interface (getContentBounds) for bounce-mode collision detection
+- **Refresh strategy**: The screensaver refreshes at 30fps in wallpaper/bounce modes for smooth gestures and animation
 
 ## Tech Stack
 
@@ -57,6 +78,9 @@ app/src/main/java/com/dlnaclock/
 ├── dlna/             # DLNA/UPnP protocol stack (SSDP, GENA, AVT, RC)
 ├── media/            # Music/Video player Activities
 ├── screensaver/      # Screensaver main UI + dynamic wallpaper engine
+│   ├── GestureController.java   # Gesture control (3D rotation / pan / zoom)
+│   ├── GestureTransform.java    # Gesture transform state & Canvas application
+│   ├── BounceBurnInManager.java # Bounce-mode anti burn-in (with dragging)
 │   └── wallpaper/    # 13 wallpapers + Lua engine + param system
 ├── settings/         # Settings UI
 └── util/             # Utilities

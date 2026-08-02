@@ -9,7 +9,7 @@ import android.os.Bundle;
  * 3D 线框几何体旋转（透视投影）
  * 8 顶点 × 12 边，手动矩阵运算
  */
-public class CubeWallpaper implements WallpaperRenderer {
+public class CubeWallpaper implements WallpaperRenderer, GestureAwareWallpaper {
 
     // 立方体 8 个顶点（归一化 -1~1）
     private static final float[][] VERTICES = {
@@ -44,6 +44,11 @@ public class CubeWallpaper implements WallpaperRenderer {
     private float cubeSize = 2.8f;
     private int lineWidth = 19;
     private float hueParam = 72f;
+
+    // 手势叠加
+    private float gestureRotX, gestureRotY;
+    private float gestureOffsetX, gestureOffsetY;
+    private float gestureScale = 1f;
 
     private static final ParamDef[] PARAMS = {
             new ParamDef("cubeSize", "立方体大小", 0.5f, 6f, 2.8f, 0.1f),
@@ -86,8 +91,12 @@ public class CubeWallpaper implements WallpaperRenderer {
         float angleY = timeSec * 0.6f * speedMultiplier;
         float angleZ = timeSec * 0.2f * speedMultiplier;
 
-        float cosX = (float) Math.cos(angleX), sinX = (float) Math.sin(angleX);
-        float cosY = (float) Math.cos(angleY), sinY = (float) Math.sin(angleY);
+        // 手势叠加：手势旋转在自动旋转之上再叠加（跟手方向）
+        float gesRadX = (float) Math.toRadians(gestureRotX);
+        float gesRadY = (float) Math.toRadians(gestureRotY);
+
+        float cosX = (float) Math.cos(angleX + gesRadX), sinX = (float) Math.sin(angleX + gesRadX);
+        float cosY = (float) Math.cos(angleY + gesRadY), sinY = (float) Math.sin(angleY + gesRadY);
         float cosZ = (float) Math.cos(angleZ), sinZ = (float) Math.sin(angleZ);
 
         // 变换和投影每个顶点
@@ -111,8 +120,9 @@ public class CubeWallpaper implements WallpaperRenderer {
 
             // 透视投影
             float factor = perspective / (perspective + z2);
-            projX[i] = centerX + x3 * projScale * factor;
-            projY[i] = centerY + y3 * projScale * factor;
+            float baseScale = projScale * gestureScale;
+            projX[i] = centerX + gestureOffsetX + x3 * baseScale * factor;
+            projY[i] = centerY + gestureOffsetY + y3 * baseScale * factor;
         }
 
         // 绘制边（根据深度调整透明度）
@@ -175,5 +185,15 @@ public class CubeWallpaper implements WallpaperRenderer {
         hueParam = params.getFloat("hue", 72f);
         if (edgePaint != null) edgePaint.setStrokeWidth(lineWidth);
         if (initialized) projScale = Math.min(width, height) * 0.2f * cubeSize;
+    }
+
+    @Override
+    public void applyGesture(float rotX, float rotY, float offsetX, float offsetY, float scale) {
+        // 手势旋转叠加到自动旋转之上（手势存储为角度，draw 中转角弧度）
+        gestureRotX = rotX;
+        gestureRotY = rotY;
+        gestureOffsetX = offsetX;
+        gestureOffsetY = offsetY;
+        gestureScale = scale;
     }
 }

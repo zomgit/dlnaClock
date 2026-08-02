@@ -29,6 +29,7 @@ import com.dlnaclock.screensaver.wallpaper.WallpaperFactory;
 import com.dlnaclock.util.PreferenceHelper;
 import com.dlnaclock.util.FullScreenHelper;
 
+import android.content.res.Configuration;
 import android.widget.FrameLayout;
 
 /**
@@ -47,6 +48,7 @@ public class ScreenSaverActivity extends AppCompatActivity
     private ImageButton btnSwitchStyle;
     private ImageButton btnSwitchBg;
     private ImageButton btnSwitchWallpaper;
+    private ImageButton btnWallpaperParams;
     private LinearLayout bottomRightGroup;
     private FrameLayout controlPanelContainer;
     private WallpaperControlPanel wallpaperControlPanel;
@@ -77,12 +79,31 @@ public class ScreenSaverActivity extends AppCompatActivity
         btnSwitchStyle = (ImageButton) findViewById(R.id.btn_switch_style);
         btnSwitchBg = (ImageButton) findViewById(R.id.btn_switch_bg);
         btnSwitchWallpaper = (ImageButton) findViewById(R.id.btn_switch_wallpaper);
+        btnWallpaperParams = (ImageButton) findViewById(R.id.btn_wallpaper_params);
         bottomRightGroup = (LinearLayout) findViewById(R.id.bottom_right_group);
         controlPanelContainer = (FrameLayout) findViewById(R.id.wallpaper_control_panel);
 
         // 初始化壁纸参数控制面板
         if (controlPanelContainer != null) {
             wallpaperControlPanel = new WallpaperControlPanel(this, controlPanelContainer);
+            // 一键还原：重置参数时同步清零当前壁纸的手势状态（叠加式壁纸）
+            wallpaperControlPanel.setExtraResetAction(new Runnable() {
+                @Override
+                public void run() {
+                    if (screenSaverView != null) {
+                        screenSaverView.resetWallpaperGesture();
+                    }
+                }
+            });
+            // 单独还原旋转：仅清零手势旋转角（保留平移/缩放）
+            wallpaperControlPanel.setRotationResetAction(new Runnable() {
+                @Override
+                public void run() {
+                    if (screenSaverView != null) {
+                        screenSaverView.resetRotationGesture();
+                    }
+                }
+            });
         }
 
         // Setup menu bar buttons
@@ -108,6 +129,16 @@ public class ScreenSaverActivity extends AppCompatActivity
             });
         }
 
+        // Setup bottom-right: toggle wallpaper params panel
+        if (btnWallpaperParams != null) {
+            btnWallpaperParams.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    toggleWallpaperPanel();
+                }
+            });
+        }
+
         // Setup bottom-right: switch background mode
         if (btnSwitchBg != null) {
             btnSwitchBg.setOnClickListener(new View.OnClickListener() {
@@ -123,6 +154,16 @@ public class ScreenSaverActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 toggleControls();
+            }
+        });
+
+        // 手势旋转角变化时实时显示在参数面板中
+        screenSaverView.setWallpaperRotationListener(new ScreenSaverView.WallpaperRotationListener() {
+            @Override
+            public void onWallpaperRotationChanged(float rotX, float rotY) {
+                if (wallpaperControlPanel != null) {
+                    wallpaperControlPanel.updateRotationDisplay(rotX, rotY);
+                }
             }
         });
 
@@ -193,6 +234,15 @@ public class ScreenSaverActivity extends AppCompatActivity
     }
 
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // 屏幕旋转后重新计算壁纸控制面板尺寸
+        if (wallpaperControlPanel != null) {
+            wallpaperControlPanel.recalculateLayout();
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         dlnaManager.addEventListener(this);
@@ -219,6 +269,26 @@ public class ScreenSaverActivity extends AppCompatActivity
         }
     }
 
+    /**
+     * 切换壁纸参数面板显示（仅动态壁纸模式下可用，面板独立于控件栏自动隐藏）
+     */
+    private void toggleWallpaperPanel() {
+        if (controlPanelContainer == null || screenSaverView == null) return;
+        BackgroundManager bgMgr = screenSaverView.getBackgroundManager();
+        if (bgMgr == null || !bgMgr.isWallpaperMode()) return;
+        if (controlPanelContainer.getVisibility() == View.VISIBLE) {
+            controlPanelContainer.setVisibility(View.GONE);
+        } else {
+            refreshWallpaperControlPanel();
+            controlPanelContainer.setVisibility(View.VISIBLE);
+            // 同步显示当前手势旋转角（面板可能是在旋转后打开的）
+            if (wallpaperControlPanel != null) {
+                wallpaperControlPanel.updateRotationDisplay(
+                        screenSaverView.getGestureRotX(), screenSaverView.getGestureRotY());
+            }
+        }
+    }
+
     private void showControls() {
         controlsVisible = true;
         if (menuBar != null) menuBar.setVisibility(View.VISIBLE);
@@ -226,14 +296,7 @@ public class ScreenSaverActivity extends AppCompatActivity
         if (bottomRightGroup != null) bottomRightGroup.setVisibility(View.VISIBLE);
         // 仅在动态壁纸模式下显示切换壁纸按钮
         updateWallpaperSwitchVisibility();
-        // 仅在动态壁纸模式下显示参数控制面板
-        if (controlPanelContainer != null && screenSaverView != null) {
-            BackgroundManager bgMgr = screenSaverView.getBackgroundManager();
-            if (bgMgr != null && bgMgr.isWallpaperMode()) {
-                controlPanelContainer.setVisibility(View.VISIBLE);
-                refreshWallpaperControlPanel();
-            }
-        }
+        // 参数面板由底部“参数”按钮独立开关，不随控件栏自动隐藏
         // Auto-hide after 5 seconds
         hideHandler.removeCallbacksAndMessages(null);
         hideHandler.postDelayed(new Runnable() {
@@ -249,7 +312,6 @@ public class ScreenSaverActivity extends AppCompatActivity
         if (menuBar != null) menuBar.setVisibility(View.GONE);
         if (btnSwitchStyle != null) btnSwitchStyle.setVisibility(View.GONE);
         if (bottomRightGroup != null) bottomRightGroup.setVisibility(View.GONE);
-        if (controlPanelContainer != null) controlPanelContainer.setVisibility(View.GONE);
     }
 
     private void switchClockStyle() {
@@ -272,6 +334,10 @@ public class ScreenSaverActivity extends AppCompatActivity
         Toast.makeText(this, modeNames[nextMode], Toast.LENGTH_SHORT).show();
         // 切换后更新壁纸按钮可见性
         updateWallpaperSwitchVisibility();
+        // 非壁纸模式下关闭参数面板
+        if (nextMode != 3 && controlPanelContainer != null) {
+            controlPanelContainer.setVisibility(View.GONE);
+        }
     }
 
     private void switchWallpaperStyle() {
@@ -295,10 +361,15 @@ public class ScreenSaverActivity extends AppCompatActivity
     }
 
     private void updateWallpaperSwitchVisibility() {
-        if (btnSwitchWallpaper == null || screenSaverView == null) return;
+        if (screenSaverView == null) return;
         BackgroundManager bgMgr = screenSaverView.getBackgroundManager();
         boolean isWallpaper = bgMgr != null && bgMgr.isWallpaperMode();
-        btnSwitchWallpaper.setVisibility(isWallpaper ? View.VISIBLE : View.GONE);
+        if (btnSwitchWallpaper != null) {
+            btnSwitchWallpaper.setVisibility(isWallpaper ? View.VISIBLE : View.GONE);
+        }
+        if (btnWallpaperParams != null) {
+            btnWallpaperParams.setVisibility(isWallpaper ? View.VISIBLE : View.GONE);
+        }
     }
 
     /**

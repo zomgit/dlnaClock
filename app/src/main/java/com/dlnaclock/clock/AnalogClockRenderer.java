@@ -26,25 +26,11 @@ public class AnalogClockRenderer implements ClockRenderer {
     @Override
     public void draw(Canvas canvas, int width, int height, Calendar time, ClockConfig config) {
         int color = config.getFontColor();
-        // 基于屏幕宽度计算字号（各时钟类型独立存储，模拟时钟用 "12:00:00" 作为参考文本）
-        float orientScale = ClockConfig.getFontScaleForOrientation(width, height, ClockConfig.ClockStyle.ANALOG);
-        config.setFontScale(orientScale);
-        numberPaint.setTextSize(100);
-        int fontSize = config.getFontSizePx(width, "12:00:00", numberPaint);
-        int size = Math.min(width, height) / 3;
-        if (size > fontSize * 4) {
-            size = fontSize * 4;
-        }
 
-        float radius = size / 2f;
-        // 基于内容尺寸和用户设置的位置百分比计算坐标
-        // posX=0% 左边缘贴屏幕左边, posX=50% 水平居中, posX=100% 右边缘贴屏幕右边
-        float centerX = radius + config.getPositionX() * (width - size);
-        // posY=0% 顶部贴屏幕顶端, posY=50% 垂直居中, posY=100% 底部贴屏幕底端
-        float centerY = radius + config.getPositionY() * (height - size);
-        // 安全边界钳制
-        centerX = Math.max(radius, Math.min(width - radius, centerX));
-        centerY = Math.max(radius, Math.min(height - radius, centerY));
+        float[] layout = computeLayout(width, height, config);
+        float centerX = layout[4];
+        float centerY = layout[5];
+        float radius = layout[6];
 
         // Draw dial circle
         dialPaint.setColor(Color.argb(40, Color.red(color), Color.green(color), Color.blue(color)));
@@ -143,5 +129,43 @@ public class AnalogClockRenderer implements ClockRenderer {
         centerPaint.setColor(color);
         centerPaint.setStyle(Paint.Style.FILL);
         canvas.drawCircle(centerX, centerY, radius * 0.05f, centerPaint);
+    }
+
+    @Override
+    public float[] getContentBounds(int width, int height, Calendar time, ClockConfig config) {
+        float[] layout = computeLayout(width, height, config);
+        return new float[]{layout[0], layout[1], layout[2], layout[3]};
+    }
+
+    /**
+     * computeLayout - 计算表盘尺寸与位置（绘制与弹射边界共用）
+     * @return [left, top, right, bottom, centerX, centerY, radius]
+     */
+    private float[] computeLayout(int width, int height, ClockConfig config) {
+        // 基于屏幕宽度计算字号（各时钟类型独立存储，模拟时钟用 "12:00:00" 作为参考文本）
+        float orientScale = ClockConfig.getFontScaleForOrientation(width, height, ClockConfig.ClockStyle.ANALOG);
+        config.setFontScale(orientScale);
+        numberPaint.setTextSize(100);
+        int fontSize = config.getFontSizePx(width, "12:00:00", numberPaint);
+        int size = Math.min(width, height) / 3;
+        if (size > fontSize * 4) {
+            size = fontSize * 4;
+        }
+
+        float radius = size / 2f;
+        // 基于内容尺寸和用户设置的位置百分比计算坐标
+        // posX=0% 左边缘贴屏幕左边, posX=50% 水平居中, posX=100% 右边缘贴屏幕右边
+        float centerX = radius + config.getPositionX() * (width - size);
+        // posY=0% 顶部贴屏幕顶端, posY=50% 垂直居中, posY=100% 底部贴屏幕底端
+        float centerY = radius + config.getPositionY() * (height - size);
+        // 安全边界钳制
+        centerX = Math.max(radius, Math.min(width - radius, centerX));
+        centerY = Math.max(radius, Math.min(height - radius, centerY));
+
+        return new float[]{
+                centerX - radius, centerY - radius,
+                centerX + radius, centerY + radius,
+                centerX, centerY, radius
+        };
     }
 }

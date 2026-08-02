@@ -19,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dlnaclock.R;
+import com.dlnaclock.screensaver.wallpaper.GestureAwareWallpaper;
 import com.dlnaclock.screensaver.wallpaper.ParamDef;
 import com.dlnaclock.screensaver.wallpaper.ParamStore;
 import com.dlnaclock.screensaver.wallpaper.WallpaperFactory;
@@ -36,6 +37,12 @@ public class WallpaperControlPanel {
     private final LinearLayout paramsContainer;
     private final TextView wallpaperNameLabel;
     private final Button resetButton;
+    private final Button closeButton;
+    private final LinearLayout rotationRow;       // 手势旋转显示行（仅手势壁纸）
+    private final TextView rotationValueLabel;    // 旋转角度值显示
+    private final Button rotationResetButton;     // 单独还原旋转按钮
+    private Runnable extraResetAction;   // 一键还原时的附加动作（清零叠加式壁纸的手势状态）
+    private Runnable rotationResetAction; // 单独还原旋转的回调
 
     private WallpaperRenderer wallpaperRenderer;
     private ParamDef[] paramDefs;
@@ -53,22 +60,13 @@ public class WallpaperControlPanel {
         this.paramsContainer = (LinearLayout) parent.findViewById(R.id.layout_params_container);
         this.wallpaperNameLabel = (TextView) parent.findViewById(R.id.tv_wallpaper_name);
         this.resetButton = (Button) parent.findViewById(R.id.btn_reset_params);
+        this.closeButton = (Button) parent.findViewById(R.id.btn_close_panel);
+        this.rotationRow = (LinearLayout) parent.findViewById(R.id.layout_rotation_row);
+        this.rotationValueLabel = (TextView) parent.findViewById(R.id.tv_rotation_value);
+        this.rotationResetButton = (Button) parent.findViewById(R.id.btn_reset_rotation);
 
-        // 面板居中显示，竖屏时宽度为屏幕 90%，横屏时为 2/3
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        int panelHeight = dm.heightPixels * 2 / 3;
-        boolean isPortrait = context.getResources().getConfiguration().orientation
-                == Configuration.ORIENTATION_PORTRAIT;
-        int panelWidth = isPortrait ? dm.widthPixels * 9 / 10 : dm.widthPixels * 2 / 3;
-        int sideMargin = (dm.widthPixels - panelWidth) / 2;
-        View inflatedView = parent.getChildAt(0);
-        if (inflatedView != null) {
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT, panelHeight);
-            lp.setMargins(sideMargin, 0, sideMargin, 0);
-            lp.gravity = Gravity.CENTER;
-            inflatedView.setLayoutParams(lp);
-        }
+        // 面板居中显示，根据当前屏幕方向计算尺寸
+        recalculateLayout();
 
         if (resetButton != null) {
             resetButton.setOnClickListener(new View.OnClickListener() {
@@ -77,6 +75,61 @@ public class WallpaperControlPanel {
                     resetToDefaults();
                 }
             });
+        }
+
+        // 关闭按钮：隐藏整个面板（面板仅由底部“参数”按钮控制显示）
+        if (closeButton != null) {
+            closeButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    rootView.setVisibility(View.GONE);
+                }
+            });
+        }
+
+        // 点击面板外空白处关闭面板（根容器全屏，面板本体为其子 View）
+        rootView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rootView.setVisibility(View.GONE);
+            }
+        });
+        // 面板本体消费点击，防止点击面板内部空白区域时冒泡触发外层关闭
+        View inflatedView = rootView.getChildAt(0);
+        if (inflatedView != null) {
+            inflatedView.setClickable(true);
+        }
+
+        // 单独还原旋转：清零手势旋转角（保留平移/缩放）
+        if (rotationResetButton != null) {
+            rotationResetButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (rotationResetAction != null) {
+                        rotationResetAction.run();
+                    }
+                    updateRotationDisplay(0f, 0f);
+                }
+            });
+        }
+    }
+
+    /**
+     * 重新计算面板尺寸（屏幕旋转后调用）
+     * 居中弹窗形态：横屏 68%×68%，竖屏 85%宽×68%高，屏幕旋转时同步调整
+     */
+    public void recalculateLayout() {
+        DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        int orientation = context.getResources().getConfiguration().orientation;
+        // 横屏 68% 宽，竖屏 85% 宽；高度恒为屏幕 68%
+        float widthRatio = (orientation == Configuration.ORIENTATION_LANDSCAPE) ? 0.68f : 0.85f;
+        int panelWidth = (int) (dm.widthPixels * widthRatio);
+        int panelHeight = (int) (dm.heightPixels * 0.68f);
+        View inflatedView = rootView.getChildAt(0);
+        if (inflatedView != null) {
+            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(panelWidth, panelHeight);
+            lp.gravity = Gravity.CENTER;
+            inflatedView.setLayoutParams(lp);
         }
     }
 
@@ -105,7 +158,28 @@ public class WallpaperControlPanel {
                 wallpaperNameLabel.setText(names.get(wallpaperType));
             }
         }
+        // 手势壁纸显示“手势旋转”行，其余壁纸隐藏
+        if (rotationRow != null) {
+            rotationRow.setVisibility(renderer instanceof GestureAwareWallpaper
+                    ? View.VISIBLE : View.GONE);
+        }
         rebuildControls();
+    }
+
+    /**
+     * 更新手势旋转角显示（面板实时联动，角度取整）
+     */
+    public void updateRotationDisplay(float rotX, float rotY) {
+        if (rotationValueLabel != null) {
+            rotationValueLabel.setText("X " + Math.round(rotX) + "°  Y " + Math.round(rotY) + "°");
+        }
+    }
+
+    /**
+     * 设置单独还原旋转的回调（由 Activity 注入，清零当前壁纸手势旋转角）
+     */
+    public void setRotationResetAction(Runnable action) {
+        this.rotationResetAction = action;
     }
 
     /**
@@ -123,6 +197,13 @@ public class WallpaperControlPanel {
             }
             updateControlValues();
         }
+    }
+
+    /**
+     * 设置一键还原的附加动作（清零叠加式壁纸的手势状态）
+     */
+    public void setExtraResetAction(Runnable action) {
+        this.extraResetAction = action;
     }
 
     /**
@@ -374,6 +455,10 @@ public class WallpaperControlPanel {
         currentParams = ParamStore.loadParams(wallpaperType, paramDefs);
         if (wallpaperRenderer != null) {
             wallpaperRenderer.applyParams(currentParams);
+        }
+        // 叠加式壁纸的手势状态一并清零（直控壁纸的参数已重置）
+        if (extraResetAction != null) {
+            extraResetAction.run();
         }
         updateControlValues();
         Toast.makeText(context, "已重置为默认值", Toast.LENGTH_SHORT).show();

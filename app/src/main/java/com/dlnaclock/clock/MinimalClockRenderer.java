@@ -73,8 +73,96 @@ public class MinimalClockRenderer implements ClockRenderer {
         }
     }
 
+    /** LayoutData - 布局计算结果（绘制与弹射边界共用） */
+    private static class LayoutData {
+        List<RowDrawData> rows;
+        float maxWidth;
+        float totalHeight;
+        float lineSpacing;
+        float blockLeft;
+        float blockTop;
+
+        LayoutData(List<RowDrawData> rows, float maxWidth, float totalHeight,
+                   float lineSpacing, float blockLeft, float blockTop) {
+            this.rows = rows;
+            this.maxWidth = maxWidth;
+            this.totalHeight = totalHeight;
+            this.lineSpacing = lineSpacing;
+            this.blockLeft = blockLeft;
+            this.blockTop = blockTop;
+        }
+    }
+
     @Override
     public void draw(Canvas canvas, int width, int height, Calendar time, ClockConfig config) {
+        LayoutData layout = computeLayout(width, height, time, config);
+        if (layout == null) return;
+
+        List<RowDrawData> visibleRows = layout.rows;
+        float blockLeft = layout.blockLeft;
+        float blockTop = layout.blockTop;
+        float maxWidth = layout.maxWidth;
+        float lineSpacing = layout.lineSpacing;
+
+        // 居中点基于参考串宽度，位置稳定不随实际文本变化
+        float centerX = blockLeft + maxWidth / 2f;
+
+        // === 检测第一行是否为时间行（分钟锚点策略仅对时间行生效） ===
+        boolean firstRowIsTime = config.getMinimalRows()[0] != null
+                && config.getMinimalRows()[0].getContentType() == MinimalRowConfig.ContentType.TIME;
+
+        // === 绘制每行 ===
+        float currentY = blockTop;
+        for (int i = 0; i < visibleRows.size(); i++) {
+            RowDrawData rd = visibleRows.get(i);
+            if (i > 0) currentY += lineSpacing * 0.6f;
+
+            paint.setColor(rd.color);
+            paint.setTextSize(rd.size);
+            paint.setTypeface(rd.typeface);
+            setTabularNumbers(paint); // 启用等宽数字
+            paint.setAlpha(255);
+            paint.setFakeBoldText(false);
+
+            // 防抖动策略：时间行含时分秒（两个冒号）时以分钟段为锚点居中，
+            // 即让 mm 段中心对准区域中心；HH:mm 宽度在一分钟内恒定，锚点不随秒跳动。
+            // 其它行直接居中。
+            float drawX;
+            int c1 = (i == 0 && firstRowIsTime) ? rd.text.indexOf(':') : -1;
+            int c2 = (c1 > 0) ? rd.text.lastIndexOf(':') : -1;
+            if (c1 > 0 && c2 > c1) {
+                paint.setTextAlign(Paint.Align.LEFT);
+                float prefixW = paint.measureText(rd.text, 0, c1 + 1);  // "HH:"
+                float minuteW = paint.measureText(rd.text, c1 + 1, c2); // "mm"
+                drawX = centerX - prefixW - minuteW / 2f;
+            } else {
+                paint.setTextAlign(Paint.Align.CENTER);
+                drawX = centerX;
+            }
+
+            float baseline = currentY + rd.size * 0.85f;
+            canvas.drawText(rd.text, drawX, baseline, paint);
+            currentY += rd.size;
+        }
+    }
+
+    @Override
+    public float[] getContentBounds(int width, int height, Calendar time, ClockConfig config) {
+        LayoutData layout = computeLayout(width, height, time, config);
+        if (layout == null) return null;
+        return new float[]{
+                layout.blockLeft,
+                layout.blockTop,
+                layout.blockLeft + layout.maxWidth,
+                layout.blockTop + layout.totalHeight
+        };
+    }
+
+    /**
+     * computeLayout - 解析行配置并计算布局（绘制与弹射边界共用）
+     * @return 布局数据，无可见行时返回 null
+     */
+    private LayoutData computeLayout(int width, int height, Calendar time, ClockConfig config) {
         // === 遍历行配置，收集可见行 ===
         List<RowDrawData> visibleRows = new ArrayList<>();
         MinimalRowConfig[] rows = config.getMinimalRows();
@@ -88,17 +176,11 @@ public class MinimalClockRenderer implements ClockRenderer {
 
             Typeface tf = SystemFontHelper.resolveTypeface(App.getInstance(), row.getFontName());
 
-            // 第一个可见行使用主字号，其余行使用 0.3x
-            float size;
-            if (visibleRows.isEmpty()) {
-                size = -1; // placeholder, computed below
-            } else {
-                size = -1; // placeholder
-            }
-            visibleRows.add(new RowDrawData(text, tf, size, row.getColor()));
+            // 第一个可见行使用主字号，其余行使用 0.3x（字号在下方统一计算）
+            visibleRows.add(new RowDrawData(text, tf, -1, row.getColor()));
         }
 
-        if (visibleRows.isEmpty()) return;
+        if (visibleRows.isEmpty()) return null;
 
         // === 基于第一行计算主字号 ===
         RowDrawData firstRow = visibleRows.get(0);
@@ -139,46 +221,8 @@ public class MinimalClockRenderer implements ClockRenderer {
         // 基于用户位置计算坐标
         float blockLeft = config.getPositionX() * (width - maxWidth);
         float blockTop = config.getPositionY() * (height - totalHeight);
-        // 居中点基于参考串宽度，位置稳定不随实际文本变化
-        float centerX = blockLeft + maxWidth / 2f;
 
-        // === 检测第一行是否为时间行（分钟锚点策略仅对时间行生效） ===
-        boolean firstRowIsTime = rows[0] != null
-                && rows[0].getContentType() == MinimalRowConfig.ContentType.TIME;
-
-        // === 绘制每行 ===
-        float currentY = blockTop;
-        for (int i = 0; i < visibleRows.size(); i++) {
-            RowDrawData rd = visibleRows.get(i);
-            if (i > 0) currentY += lineSpacing * 0.6f;
-
-            paint.setColor(rd.color);
-            paint.setTextSize(rd.size);
-            paint.setTypeface(rd.typeface);
-            setTabularNumbers(paint); // 启用等宽数字
-            paint.setAlpha(255);
-            paint.setFakeBoldText(false);
-
-            // 防抖动策略：时间行含时分秒（两个冒号）时以分钟段为锚点居中，
-            // 即让 mm 段中心对准区域中心；HH:mm 宽度在一分钟内恒定，锚点不随秒跳动。
-            // 其它行直接居中。
-            float drawX;
-            int c1 = (i == 0 && firstRowIsTime) ? rd.text.indexOf(':') : -1;
-            int c2 = (c1 > 0) ? rd.text.lastIndexOf(':') : -1;
-            if (c1 > 0 && c2 > c1) {
-                paint.setTextAlign(Paint.Align.LEFT);
-                float prefixW = paint.measureText(rd.text, 0, c1 + 1);  // "HH:"
-                float minuteW = paint.measureText(rd.text, c1 + 1, c2); // "mm"
-                drawX = centerX - prefixW - minuteW / 2f;
-            } else {
-                paint.setTextAlign(Paint.Align.CENTER);
-                drawX = centerX;
-            }
-
-            float baseline = currentY + rd.size * 0.85f;
-            canvas.drawText(rd.text, drawX, baseline, paint);
-            currentY += rd.size;
-        }
+        return new LayoutData(visibleRows, maxWidth, totalHeight, lineSpacing, blockLeft, blockTop);
     }
 
     /**
@@ -238,7 +282,13 @@ public class MinimalClockRenderer implements ClockRenderer {
         if ((items & ClockConfig.STATUS_BATTERY) != 0) selectedItems.add(ClockConfig.STATUS_BATTERY);
         if ((items & ClockConfig.STATUS_APP_TIME) != 0) selectedItems.add(ClockConfig.STATUS_APP_TIME);
         if ((items & ClockConfig.STATUS_DEV_TIME) != 0) selectedItems.add(ClockConfig.STATUS_DEV_TIME);
-        if ((items & ClockConfig.STATUS_CUSTOM) != 0) selectedItems.add(ClockConfig.STATUS_CUSTOM);
+        if ((items & ClockConfig.STATUS_CUSTOM) != 0) {
+            // 自定义文本为空时跳过该轮播项，避免轮播出现空白
+            String customText = row.getCustomText();
+            if (customText != null && !customText.isEmpty()) {
+                selectedItems.add(ClockConfig.STATUS_CUSTOM);
+            }
+        }
 
         if (selectedItems.isEmpty()) return "";
 

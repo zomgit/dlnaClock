@@ -36,6 +36,94 @@ public class DigitalClockRenderer implements ClockRenderer {
     public void draw(Canvas canvas, int width, int height, Calendar time, ClockConfig config) {
         int color = config.getFontColor();
 
+        float[] content = measureContent(width, height, time, config);
+        float blockLeft = content[0];
+        float blockTop = content[1];
+        float refBlockWidth = content[2];
+        float fontSize = content[4];
+        float subSize = content[5];
+
+        // 确保格式化器与配置同步
+        String displayStr = formatter.format(time.getTime());
+
+        // 判断是否包含空格，拆分为大字体主行 + 小字体副行
+        String mainLine = displayStr;
+        String subLine = null;
+        int spaceIdx = displayStr.indexOf(' ');
+        if (spaceIdx > 0 && spaceIdx < displayStr.length() - 1) {
+            mainLine = displayStr.substring(0, spaceIdx);
+            subLine = displayStr.substring(spaceIdx + 1);
+        }
+
+        // 设置数字字体（主行时间）
+        Typeface numberTypeface = SystemFontHelper.resolveTypeface(App.getInstance(), config.getNumberFont());
+        // 设置中文/英文字体（副行日期）
+        Typeface textTypeface = SystemFontHelper.resolveTypeface(App.getInstance(), config.getChineseFont());
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // 防抖动策略：含时分秒（两个冒号）时以分钟段为锚点居中，
+        // 即让 mm 段的中心对准区域中心。HH:mm 宽度在一分钟内恒定，
+        // 锚点稳定不随秒跳动；其它情况直接居中。
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        float regionCenterX = blockLeft + refBlockWidth / 2f;
+        float drawX;
+        int c1 = mainLine.indexOf(':');
+        int c2 = mainLine.lastIndexOf(':');
+        if (c1 > 0 && c2 > c1) {
+            // HH:mm:ss 形式：分钟段位于两个冒号之间
+            timePaint.setTextAlign(Paint.Align.LEFT);
+            float prefixW = timePaint.measureText(mainLine, 0, c1 + 1);  // "HH:"
+            float minuteW = timePaint.measureText(mainLine, c1 + 1, c2); // "mm"
+            // 让分钟段中心对准区域中心
+            drawX = regionCenterX - prefixW - minuteW / 2f;
+        } else {
+            // 无秒或非时分秒格式：直接居中
+            timePaint.setTextAlign(Paint.Align.CENTER);
+            drawX = regionCenterX;
+        }
+        float centerY = blockTop + fontSize * 0.85f;
+
+        // 绘制主行（时间）——使用已设置的对齐方式（有秒LEFT，无秒CENTER）
+        timePaint.setColor(color);
+        timePaint.setTextSize(fontSize);
+        timePaint.setFakeBoldText(true);
+        timePaint.setTypeface(numberTypeface);
+        timePaint.setAlpha(255);
+        timePaint.setShader(null);
+        timePaint.setMaskFilter(null);
+        canvas.drawText(mainLine, drawX, centerY, timePaint);
+
+        // 副行（日期部分）—— 日期不包含秒，始终居中
+        if (subLine != null) {
+            subPaint.setColor(color);
+            subPaint.setTextSize(subSize);
+            subPaint.setTextAlign(Paint.Align.CENTER);
+            subPaint.setAlpha(180);
+            subPaint.setMaskFilter(null);
+            subPaint.setShader(null);
+            subPaint.setTypeface(textTypeface);
+            // 副行始终居中（日期不会快速变化）
+            float subDrawX = blockLeft + refBlockWidth / 2f;
+            canvas.drawText(subLine, subDrawX, centerY + fontSize * 0.65f, subPaint);
+        }
+    }
+
+    @Override
+    public float[] getContentBounds(int width, int height, Calendar time, ClockConfig config) {
+        float[] content = measureContent(width, height, time, config);
+        return new float[]{
+                content[0],
+                content[1],
+                content[0] + content[2],
+                content[1] + content[3]
+        };
+    }
+
+    /**
+     * measureContent - 计算内容块尺寸与位置（绘制与弹射边界共用）
+     * @return [blockLeft, blockTop, refBlockWidth, blockHeight, fontSize, subSize]
+     */
+    private float[] measureContent(int width, int height, Calendar time, ClockConfig config) {
         // 确保格式化器与配置同步
         String format = config.getClockFormat();
         if (formatter == null || !format.equals(lastFormat)) {
@@ -106,51 +194,6 @@ public class DigitalClockRenderer implements ClockRenderer {
         float blockLeft = config.getPositionX() * (width - refBlockWidth);
         float blockTop = config.getPositionY() * (height - blockHeight);
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // 防抖动策略：含时分秒（两个冒号）时以分钟段为锚点居中，
-        // 即让 mm 段的中心对准区域中心。HH:mm 宽度在一分钟内恒定，
-        // 锚点稳定不随秒跳动；其它情况直接居中。
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        float regionCenterX = blockLeft + refBlockWidth / 2f;
-        float drawX;
-        int c1 = mainLine.indexOf(':');
-        int c2 = mainLine.lastIndexOf(':');
-        if (c1 > 0 && c2 > c1) {
-            // HH:mm:ss 形式：分钟段位于两个冒号之间
-            timePaint.setTextAlign(Paint.Align.LEFT);
-            float prefixW = timePaint.measureText(mainLine, 0, c1 + 1);  // "HH:"
-            float minuteW = timePaint.measureText(mainLine, c1 + 1, c2); // "mm"
-            // 让分钟段中心对准区域中心
-            drawX = regionCenterX - prefixW - minuteW / 2f;
-        } else {
-            // 无秒或非时分秒格式：直接居中
-            timePaint.setTextAlign(Paint.Align.CENTER);
-            drawX = regionCenterX;
-        }
-        float centerY = blockTop + fontSize * 0.85f;
-
-        // 绘制主行（时间）——使用已设置的对齐方式（有秒LEFT，无秒CENTER）
-        timePaint.setColor(color);
-        timePaint.setTextSize(fontSize);
-        timePaint.setFakeBoldText(true);
-        timePaint.setTypeface(numberTypeface);
-        timePaint.setAlpha(255);
-        timePaint.setShader(null);
-        timePaint.setMaskFilter(null);
-        canvas.drawText(mainLine, drawX, centerY, timePaint);
-
-        // 副行（日期部分）—— 日期不包含秒，始终居中
-        if (subLine != null) {
-            subPaint.setColor(color);
-            subPaint.setTextSize(subSize);
-            subPaint.setTextAlign(Paint.Align.CENTER);
-            subPaint.setAlpha(180);
-            subPaint.setMaskFilter(null);
-            subPaint.setShader(null);
-            subPaint.setTypeface(textTypeface);
-            // 副行始终居中（日期不会快速变化）
-            float subDrawX = blockLeft + refBlockWidth / 2f;
-            canvas.drawText(subLine, subDrawX, centerY + fontSize * 0.65f, subPaint);
-        }
+        return new float[]{blockLeft, blockTop, refBlockWidth, blockHeight, fontSize, subSize};
     }
 }
