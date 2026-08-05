@@ -2,7 +2,6 @@ package com.dlnaclock.screensaver.wallpaper;
 
 import android.graphics.Canvas;
 import android.graphics.Camera;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
@@ -56,7 +55,11 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
     private float gestureRotX, gestureRotY;
     private float gestureScale = 1f;
 
-    private final float[] hsvTmp = new float[3];
+    /** 渐变缓存脏标记（coreSize 变化时设为 true，强制重建 RadialGradient） */
+    private boolean coreGradientDirty = true;
+    private float lastCoreRadius = -1f;
+
+    // 色相偏移后的调色板（每帧更新，通过查表填充）
     private int[] shiftedPalette = new int[PALETTE.length];
 
     // 颜色调色板（暖白-蓝-紫）
@@ -64,6 +67,9 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
             0xFFFFF8E1, 0xFFBBDEFB, 0xFFCE93D8,
             0xFFFFE0B2, 0xFF90CAF9, 0xFFB39DDB
     };
+
+    /** 预计算色相偏移表（一次性构建，draw 中查表替代 shiftHue） */
+    private int[][] hueTable;
 
     private static final ParamDef[] PARAMS = {
             new ParamDef("scale", "整体大小", 1.0f, 4f, 2.7f, 0.1f),
@@ -85,6 +91,9 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
         starPaint.setStyle(Paint.Style.FILL);
         corePaint.setStyle(Paint.Style.FILL);
         glowPaint.setStyle(Paint.Style.FILL);
+
+        // 预构建色相偏移表（一次性，避免每帧 shiftHue 调用 Color.colorToHSV）
+        hueTable = TrigLut.ColorLut.buildHueTable(PALETTE);
 
         camera3d = new Camera();
         rotationMatrix = new Matrix();
@@ -131,6 +140,9 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
             starColorIdx[i] = (int) (Math.random() * PALETTE.length);
             starTwinklePhase[i] = (float) Math.random() * (float) Math.PI * 2f;
         }
+        
+        // 重置渐变缓存标记（尺寸变化后强制重建）
+        coreGradientDirty = true;
     }
 
     @Override
@@ -161,28 +173,35 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
 
         canvas.translate(-centerX, -centerY);
 
-        // 银河中心发光球体（可独立控制大小）
+        // 银河中心发光球体（缓存 RadialGradient，仅在 coreSize 变化时重建）
         float coreRadius = maxRadius * coreSize;
-        corePaint.setShader(new RadialGradient(centerX, centerY, coreRadius,
-                new int[]{0xA0FFFDE0, 0x60FFF8C0, 0x20FFE0B2, 0x00000000},
-                new float[]{0f, 0.3f, 0.7f, 1f},
-                Shader.TileMode.CLAMP));
-        canvas.drawCircle(centerX, centerY, coreRadius * 1.8f, corePaint);
+        float cachedCoreRadius = coreRadius * 1.8f;
+        if (coreGradientDirty || corePaint.getShader() == null) {
+            corePaint.setShader(new RadialGradient(centerX, centerY, coreRadius,
+                    new int[]{0xA0FFFDE0, 0x60FFF8C0, 0x20FFE0B2, 0x00000000},
+                    new float[]{0f, 0.3f, 0.7f, 1f},
+                    Shader.TileMode.CLAMP));
+            coreGradientDirty = false;
+            lastCoreRadius = coreRadius;
+        }
+        canvas.drawCircle(centerX, centerY, cachedCoreRadius, corePaint);
 
-        // 应用色相偏移到调色板
+        // 应用色相偏移到调色板（查表替代 shiftHue）
+        int hueIdx = ((int)(hueShift - 220f)) % 360;
+        if (hueIdx < 0) hueIdx += 360;
         for (int p = 0; p < PALETTE.length; p++) {
-            shiftedPalette[p] = shiftHue(PALETTE[p], hueShift - 220f);
+            shiftedPalette[p] = hueTable[p][hueIdx];
         }
 
-        // 绘制星点
+        // 绘制星点（使用 TrigLut 替代 Math.sin/cos）
         for (int i = 0; i < starCount; i++) {
             float angle = starAngle[i] + rotation;
             float dist = starDist[i] * maxRadius;
 
-            float x = centerX + dist * (float) Math.cos(angle);
-            float y = centerY + dist * (float) Math.sin(angle) * 0.6f;
+            float x = centerX + dist * TrigLut.cos(angle);
+            float y = centerY + dist * TrigLut.sin(angle) * 0.6f;
 
-            float twinkle = 0.6f + 0.4f * (float) Math.sin(timeSec * 1.5f * speedMultiplier + starTwinklePhase[i]);
+            float twinkle = 0.6f + 0.4f * TrigLut.sin(timeSec * 1.5f * speedMultiplier + starTwinklePhase[i]);
             int alpha = (int) (twinkle * 220);
 
             starPaint.setColor(shiftedPalette[starColorIdx[i]]);
@@ -207,6 +226,7 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
     @Override
     public void release() {
         initialized = false;
+        hueTable = null;
     }
 
     @Override
@@ -218,8 +238,12 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
         speedMultiplier = params.getFloat("speed", 1.0f);
         int newCount = (int) params.getFloat("particleCount", 200);
         rotationSpeed = params.getFloat("rotationSpeed", 1.0f);
-        coreSize = params.getFloat("coreSize", 0.49f);
+        float newCoreSize = params.getFloat("coreSize", 0.49f);
         hueShift = params.getFloat("hue", 133f);
+        if (newCoreSize != coreSize) {
+            coreSize = newCoreSize;
+            coreGradientDirty = true;
+        }
         if (newCount != starCount) {
             starCount = newCount;
             if (initialized) allocateStars();
@@ -236,12 +260,5 @@ public class GalaxyWallpaper implements WallpaperRenderer, GestureAwareWallpaper
             centerX = width / 2f + offsetX;
             centerY = height / 2f + offsetY;
         }
-    }
-
-    private int shiftHue(int color, float shiftDeg) {
-        Color.colorToHSV(color, hsvTmp);
-        hsvTmp[0] = (hsvTmp[0] + shiftDeg) % 360f;
-        if (hsvTmp[0] < 0f) hsvTmp[0] += 360f;
-        return Color.HSVToColor(hsvTmp);
     }
 }

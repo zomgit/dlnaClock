@@ -32,6 +32,17 @@
     <string name="english_font">英文字体</string>
     <string name="chinese_font">中文字体</string>
 
+    <!-- Font family (font-family) settings -->
+    <string name="font_family_dialog_title">字体族设置</string>
+    <string name="font_family_desc">最多选择 %1$d 个字体，按优先级依次回退（第 1 个优先，缺失字形依次向后查找）</string>
+    <string name="font_family_add">添加字体</string>
+    <string name="font_family_delete">删除</string>
+    <string name="font_family_max">最多只能选择 %1$d 个字体</string>
+    <string name="font_family_min">至少保留 1 个字体</string>
+    <string name="font_family_preview">预览：0123456789 你好 ABC</string>
+    <string name="font_family_select">选择字体</string>
+    <string name="font_family_priority">第%d优先</string>
+
     <!-- Minimal clock settings -->
     <string name="minimal_clock_settings">自定义时钟设置</string>
     <string name="minimal_profile_label">档案栏位</string>
@@ -74,6 +85,7 @@
     <string name="wallpaper_type">壁纸样式</string>
     <string name="bg_image_fit">图片适应方式</string>
     <string name="more_fonts">更多字体…</string>
+    <string name="toggle_video_mute">视频静音开关</string>
 
     <!-- DLNA -->
     <string name="dlna_settings">DLNA设置</string>

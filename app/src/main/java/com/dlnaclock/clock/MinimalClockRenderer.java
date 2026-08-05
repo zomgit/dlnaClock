@@ -2,7 +2,6 @@ package com.dlnaclock.clock;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Typeface;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -61,15 +60,17 @@ public class MinimalClockRenderer implements ClockRenderer {
     /** RowDrawData - 单行绘制数据 */
     private static class RowDrawData {
         String text;
-        Typeface typeface;
+        String fontValue;  // 字体族值（逗号分隔，最多3项按顺序回退）
         float size;
         int color;
+        float sizeRatio;  // 字号比例（相对于主字号）
 
-        RowDrawData(String text, Typeface typeface, float size, int color) {
+        RowDrawData(String text, String fontValue, float size, int color, float sizeRatio) {
             this.text = text;
-            this.typeface = typeface;
+            this.fontValue = fontValue;
             this.size = size;
             this.color = color;
+            this.sizeRatio = sizeRatio;
         }
     }
 
@@ -119,7 +120,7 @@ public class MinimalClockRenderer implements ClockRenderer {
 
             paint.setColor(rd.color);
             paint.setTextSize(rd.size);
-            paint.setTypeface(rd.typeface);
+            paint.setTypeface(SystemFontHelper.resolveTypeface(App.getInstance(), rd.fontValue));
             setTabularNumbers(paint); // 启用等宽数字
             paint.setAlpha(255);
             paint.setFakeBoldText(false);
@@ -132,8 +133,8 @@ public class MinimalClockRenderer implements ClockRenderer {
             int c2 = (c1 > 0) ? rd.text.lastIndexOf(':') : -1;
             if (c1 > 0 && c2 > c1) {
                 paint.setTextAlign(Paint.Align.LEFT);
-                float prefixW = paint.measureText(rd.text, 0, c1 + 1);  // "HH:"
-                float minuteW = paint.measureText(rd.text, c1 + 1, c2); // "mm"
+                float prefixW = SystemFontHelper.measureTextWithFallback(App.getInstance(), rd.text, 0, c1 + 1, paint, rd.fontValue);  // "HH:"
+                float minuteW = SystemFontHelper.measureTextWithFallback(App.getInstance(), rd.text, c1 + 1, c2, paint, rd.fontValue); // "mm"
                 drawX = centerX - prefixW - minuteW / 2f;
             } else {
                 paint.setTextAlign(Paint.Align.CENTER);
@@ -141,7 +142,7 @@ public class MinimalClockRenderer implements ClockRenderer {
             }
 
             float baseline = currentY + rd.size * 0.85f;
-            canvas.drawText(rd.text, drawX, baseline, paint);
+            SystemFontHelper.drawTextWithFallback(App.getInstance(), canvas, rd.text, drawX, baseline, paint, rd.fontValue);
             currentY += rd.size;
         }
     }
@@ -174,17 +175,21 @@ public class MinimalClockRenderer implements ClockRenderer {
             String text = resolveRowText(row, time, config);
             if (text == null || text.isEmpty()) continue;
 
-            Typeface tf = SystemFontHelper.resolveTypeface(App.getInstance(), row.getFontName());
+            // 字体族值（渲染时按顺序回退）
+            String fontValue = row.getFontName();
 
-            // 第一个可见行使用主字号，其余行使用 0.3x（字号在下方统一计算）
-            visibleRows.add(new RowDrawData(text, tf, -1, row.getColor()));
+            // 字号比例
+            float sizeRatio = row.getSizeRatio();
+
+            // 第一个可见行使用主字号，其余行使用 ratio 缩放
+            visibleRows.add(new RowDrawData(text, fontValue, -1, row.getColor(), sizeRatio));
         }
 
         if (visibleRows.isEmpty()) return null;
 
         // === 基于第一行计算主字号 ===
         RowDrawData firstRow = visibleRows.get(0);
-        paint.setTypeface(firstRow.typeface);
+        paint.setTypeface(SystemFontHelper.resolveTypeface(App.getInstance(), firstRow.fontValue));
         float orientScale = ClockConfig.getFontScaleForOrientation(width, height, ClockConfig.ClockStyle.MINIMAL);
         config.setFontScale(orientScale);
 
@@ -192,10 +197,9 @@ public class MinimalClockRenderer implements ClockRenderer {
         String refStr = ClockConfig.generateReferenceString(rows[0] != null ? rows[0].getFormat() : "HH:mm:ss");
         int mainFontSize = config.getFontSizePx(width, refStr, paint);
 
-        // 设置实际字号
-        firstRow.size = mainFontSize;
-        for (int i = 1; i < visibleRows.size(); i++) {
-            visibleRows.get(i).size = mainFontSize * 0.3f;
+        // 设置实际字号（按 per-row sizeRatio 缩放）
+        for (int i = 0; i < visibleRows.size(); i++) {
+            visibleRows.get(i).size = mainFontSize * visibleRows.get(i).sizeRatio;
         }
 
         // === 计算布局 ===
@@ -211,10 +215,10 @@ public class MinimalClockRenderer implements ClockRenderer {
             // 用参考串测量宽度，确保布局框架稳定不随文本内容抖动
             // 第一行复用字号计算的 refStr，其余行用通用参考串
             paint.setTextSize(rd.size);
-            paint.setTypeface(rd.typeface);
+            paint.setTypeface(SystemFontHelper.resolveTypeface(App.getInstance(), rd.fontValue));
             setTabularNumbers(paint); // 在测量时启用等宽数字，确保宽度准确
             String measureRef = (i == 0) ? refStr : "00:00:00";
-            float w = paint.measureText(measureRef);
+            float w = SystemFontHelper.measureTextWithFallback(App.getInstance(), measureRef, paint, rd.fontValue);
             if (w > maxWidth) maxWidth = w;
         }
 

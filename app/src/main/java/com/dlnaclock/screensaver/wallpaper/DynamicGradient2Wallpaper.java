@@ -141,18 +141,18 @@ public class DynamicGradient2Wallpaper implements WallpaperRenderer {
         // 当前角度（匀速旋转）
         float angle = time * 0.4f + phaseOffset;
         // 当前距离（正弦呼吸）
-        float dist = distMin + (distMax - distMin) * (0.5f + 0.5f * (float) Math.sin(time * distFreq + phaseOffset));
+        float dist = distMin + (distMax - distMin) * (0.5f + 0.5f * TrigLut.sin(time * distFreq + phaseOffset));
 
         // 当前位置
-        float bx = cx + dist * (float) Math.cos(angle);
-        float by = cy + dist * (float) Math.sin(angle);
+        float bx = cx + dist * TrigLut.cos(angle);
+        float by = cy + dist * TrigLut.sin(angle);
 
         // ── 计算运动方向（切线 + 径向分量） ──
-        float tangentX = -(float) Math.sin(angle);
-        float tangentY = (float) Math.cos(angle);
-        float distVel = (distMax - distMin) * 0.5f * distFreq * (float) Math.cos(time * distFreq + phaseOffset);
-        float radialX = (float) Math.cos(angle);
-        float radialY = (float) Math.sin(angle);
+        float tangentX = -TrigLut.sin(angle);
+        float tangentY = TrigLut.cos(angle);
+        float distVel = (distMax - distMin) * 0.5f * distFreq * TrigLut.cos(time * distFreq + phaseOffset);
+        float radialX = TrigLut.cos(angle);
+        float radialY = TrigLut.sin(angle);
         float vx = tangentX * dist * 0.4f + radialX * distVel;
         float vy = tangentY * dist * 0.4f + radialY * distVel;
         float vLen = (float) Math.sqrt(vx * vx + vy * vy);
@@ -184,8 +184,8 @@ public class DynamicGradient2Wallpaper implements WallpaperRenderer {
 
             // 每层沿运动反方向偏移（形成拖尾）
             float offset = layer * 60f;
-            float px = bx - vx * offset + (float) Math.sin(time * 0.2f + layer) * 8f;
-            float py = by - vy * offset + (float) Math.cos(time * 0.15f + layer) * 6f;
+            float px = bx - vx * offset + TrigLut.sin(time * 0.2f + layer) * 8f;
+            float py = by - vy * offset + TrigLut.cos(time * 0.15f + layer) * 6f;
 
             // ── 对角线参考线效果（仿棱锥折射） ──
             // 计算当前层位置到对角线的归一化距离

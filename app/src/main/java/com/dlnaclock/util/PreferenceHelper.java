@@ -131,9 +131,9 @@ public class PreferenceHelper {
         getPrefs().edit().putFloat("clock_position_y", y).apply();
     }
 
-    // === 数字时钟字体 ===
+    // === 数字时钟字体（字体族：最多3项逗号分隔，按顺序优先渲染） ===
     public static String getNumberFont() {
-        return getPrefs().getString("number_font", "Rajdhani Medium");
+        return getPrefs().getString("number_font", "Rajdhani Medium,Microsoft YaHei");
     }
 
     public static void setNumberFont(String font) {
@@ -141,7 +141,7 @@ public class PreferenceHelper {
     }
 
     public static String getEnglishFont() {
-        return getPrefs().getString("english_font", "default");
+        return getPrefs().getString("english_font", "Rajdhani Medium,Microsoft YaHei");
     }
 
     public static void setEnglishFont(String font) {
@@ -149,7 +149,7 @@ public class PreferenceHelper {
     }
 
     public static String getChineseFont() {
-        return getPrefs().getString("chinese_font", "default");
+        return getPrefs().getString("chinese_font", "Rajdhani Medium,Microsoft YaHei");
     }
 
     public static void setChineseFont(String font) {
@@ -216,14 +216,14 @@ public class PreferenceHelper {
         MinimalRowConfig row0 = MinimalRowConfig.createDefault(MinimalRowConfig.ContentType.TIME);
         row0.setFormat(p.getString("minimal_time_format", "HH:mm:ss"));
         row0.setUse12Hour(p.getBoolean("minimal_use_12hour", false));
-        row0.setFontName(p.getString("minimal_time_font", "Rajdhani Medium"));
+        row0.setFontName(p.getString("minimal_time_font", MinimalRowConfig.DEFAULT_ROW_FONT));
         row0.setColor(p.getInt("clock_font_color", 0xFFFFFFFF));
         setMinimalRowConfig(0, 0, row0);
 
         // 行1：日期
         MinimalRowConfig row1 = MinimalRowConfig.createDefault(MinimalRowConfig.ContentType.DATE);
         row1.setFormat(p.getString("minimal_date_format", "yyyy-MM-dd"));
-        row1.setFontName(p.getString("minimal_date_font", "Microsoft YaHei"));
+        row1.setFontName(p.getString("minimal_date_font", MinimalRowConfig.DEFAULT_ROW_FONT));
         row1.setColor(0xB4FFFFFF);
         setMinimalRowConfig(0, 1, row1);
 
@@ -231,7 +231,7 @@ public class PreferenceHelper {
         MinimalRowConfig row2 = MinimalRowConfig.createDefault(MinimalRowConfig.ContentType.STATUS);
         row2.setStatusItems(p.getInt("minimal_status_items", 0));
         row2.setRotateInterval(p.getInt("minimal_rotate_interval", 5));
-        row2.setFontName(p.getString("minimal_status_font", "Microsoft YaHei"));
+        row2.setFontName(p.getString("minimal_status_font", MinimalRowConfig.DEFAULT_ROW_FONT));
         row2.setCustomText(p.getString("minimal_custom_text", ""));
         row2.setColor(0x8CFFFFFF);
         setMinimalRowConfig(0, 2, row2);
@@ -350,6 +350,16 @@ public class PreferenceHelper {
 
     public static void setBackgroundVideoPath(String path) {
         getPrefs().edit().putString("bg_video_path", path).apply();
+    }
+
+    /** isBackgroundVideoMuted - 背景视频是否静音（默认 false，播放声音） */
+    public static boolean isBackgroundVideoMuted() {
+        return getPrefs().getBoolean("bg_video_muted", false);
+    }
+
+    /** setBackgroundVideoMuted - 设置背景视频静音 */
+    public static void setBackgroundVideoMuted(boolean muted) {
+        getPrefs().edit().putBoolean("bg_video_muted", muted).apply();
     }
 
     /** getBackgroundImageFit - 获取图片适应模式 (0=CenterCrop, 1=Stretch, 2=FitWidth, 3=FitHeight, 4=Center) */

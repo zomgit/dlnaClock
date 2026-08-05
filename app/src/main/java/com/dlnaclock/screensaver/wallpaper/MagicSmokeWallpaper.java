@@ -139,9 +139,9 @@ public class MagicSmokeWallpaper implements WallpaperRenderer {
                 float x = -margin + i * step;
                 // 主波 + 次波叠加，创造不规则有机形态
                 float y = baseY[layer]
-                        + amp * (float) Math.sin(x * frq + ph + timeSec * spd)
-                        + amp * 0.35f * (float) Math.sin(x * frq * 2.3f + ph * 1.7f + timeSec * spd * 0.65f)
-                        + amp * 0.15f * (float) Math.sin(x * frq * 0.5f + ph * 0.3f + timeSec * spd * 1.4f);
+                        + amp * TrigLut.sin(x * frq + ph + timeSec * spd)
+                        + amp * 0.35f * TrigLut.sin(x * frq * 2.3f + ph * 1.7f + timeSec * spd * 0.65f)
+                        + amp * 0.15f * TrigLut.sin(x * frq * 0.5f + ph * 0.3f + timeSec * spd * 1.4f);
 
                 if (i == 0) p.moveTo(x, y);
                 else p.lineTo(x, y);

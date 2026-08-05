@@ -8,7 +8,7 @@ A **DLNA + AirPlay casting receiver** designed for Android TV / old phones / tab
 
 ### 🕐 Clock Screensaver
 - **Multiple clock styles**: Digital, Analog, Custom multi-row (Minimal)
-- **Highly customizable**: Font, color, size, position, 12/24-hour format, custom format strings
+- **Highly customizable**: Font family (up to 3 fonts per item with priority fallback), color, size, position, 12/24-hour format, custom format strings
 - **Anti burn-in**: Two modes — random shift / bounce motion (adjustable offset range, bounce angle and speed); bounce mode supports dragging the clock with a finger, protecting OLED/AMOLED screens
 - **Auto-start on boot**: Supports BOOT_COMPLETED auto-launch
 
@@ -18,7 +18,7 @@ A **DLNA + AirPlay casting receiver** designed for Android TV / old phones / tab
 - **Real-time parameter control**: Floating parameter panel with independent toggle, instant SeekBar feedback, tap outside the panel to close
 - **Gesture control**: One-finger drag for 3D perspective rotation, two-finger pan / pinch zoom; each wallpaper keeps its own gesture state across switches; panel shows live rotation angles with one-tap rotation reset
 - **Zero-allocation rendering**: Canvas 2D pure CPU drawing, compatible with low-end devices (minSdk 19)
-- **Background modes**: Solid color / Static image (5 fit modes) / Video loop / Dynamic wallpaper
+- **Background modes**: Solid color / Static image (5 fit modes) / Video loop (FFmpeg, all formats) / Dynamic wallpaper / Lua custom wallpaper
 
 ### 📺 DLNA Casting Receiver
 - Full UPnP/DLNA DMR (Digital Media Renderer) protocol implementation
@@ -36,7 +36,23 @@ A **DLNA + AirPlay casting receiver** designed for Android TV / old phones / tab
 
 ## Changelog
 
-### Latest update
+### v1.0.3 (latest)
+
+#### ➕ Added
+
+- **Font family fallback mechanism**: The number / English / Chinese fonts and each custom-clock row can be configured with up to 3 fonts; characters are rendered with the highest-priority font that supports them, falling back automatically to the next one (precise glyph detection on API 23+, heuristic detection on lower versions)
+- **Font picker upgrade**: Font dropdowns replaced by buttons + a font-family dialog with built-in fonts listed first and live preview ("0123456789 你好 ABC"); supports add / remove / priority ordering
+- **Per-row font size ratio for the custom clock**: Each Minimal clock row has an independent "font size" slider (5%–100%), default main:sub rows = 3:1:1
+- **Lua custom wallpaper mode**: A 5th background mode "Custom Wallpaper" runs user Lua scripts directly
+- **DSEG7 Classic font**: New built-in seven-segment LCD digit font (OFL-1.1)
+
+#### 🔧 Changed
+
+- **Background video engine upgraded**: System MediaPlayer replaced with IJKPlayer (FFmpeg), supporting full-format video backgrounds like mkv/avi; playback pauses automatically when the app goes to background
+- **Wallpaper render performance**: New TrigLut precomputed trig lookup table replaces hundreds of sin/cos calls per frame, reducing CPU load
+- **Default font family updated**: Number / English / Chinese fonts now default to "Rajdhani Medium, Microsoft YaHei" so Latin and CJK glyphs complement each other
+
+### v1.0.2
 
 #### ➕ Added
 
@@ -81,7 +97,7 @@ app/src/main/java/com/dlnaclock/
 │   ├── GestureController.java   # Gesture control (3D rotation / pan / zoom)
 │   ├── GestureTransform.java    # Gesture transform state & Canvas application
 │   ├── BounceBurnInManager.java # Bounce-mode anti burn-in (with dragging)
-│   └── wallpaper/    # 13 wallpapers + Lua engine + param system
+│   └── wallpaper/    # 13 wallpapers + Lua engine + param system + TrigLut lookup
 ├── settings/         # Settings UI
 └── util/             # Utilities
 ```
@@ -115,6 +131,7 @@ See [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) for full details:
 - **JmDNS** (Apache-2.0) — mDNS/DNS-SD service discovery
 - **LuaJ** (MIT) — Lua script engine
 - **Google Fonts** (Apache-2.0 / OFL-1.1) — Clock fonts
+- **DSEG7** (OFL-1.1) — Seven-segment LCD digit font
 
 ## License
 

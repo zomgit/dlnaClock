@@ -118,7 +118,7 @@ public class AuroraWallpaper implements WallpaperRenderer {
             float waveLen = layerWaveLen[layer];
 
             // 起始点
-            float startY = baseY + amp * (float) Math.sin(phase + timeSec * speed);
+            float startY = baseY + amp * TrigLut.sin(phase + timeSec * speed);
             path.moveTo(0, startY);
 
             // 使用 cubicTo 构建平滑波浪
@@ -131,9 +131,9 @@ public class AuroraWallpaper implements WallpaperRenderer {
                 float angle1 = (x1 / waveLen) * 2f * (float) Math.PI + phase + timeSec * speed;
                 float angleMid = (xMid / waveLen) * 2f * (float) Math.PI + phase + timeSec * speed;
 
-                float y0 = baseY + amp * (float) Math.sin(angle0);
-                float y1 = baseY + amp * (float) Math.sin(angle1);
-                float yMid = baseY + amp * (float) Math.sin(angleMid);
+                float y0 = baseY + amp * TrigLut.sin(angle0);
+                float y1 = baseY + amp * TrigLut.sin(angle1);
+                float yMid = baseY + amp * TrigLut.sin(angleMid);
 
                 path.cubicTo(x0 + segWidth * 0.33f, y0 + (yMid - y0) * 0.5f,
                         xMid, yMid, x1, y1);

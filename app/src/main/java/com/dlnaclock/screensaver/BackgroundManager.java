@@ -9,17 +9,18 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.SurfaceTexture;
 import android.graphics.Typeface;
 import android.media.ExifInterface;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.TextureView;
 
+import com.dlnaclock.media.IjkPlayerWrapper;
 import com.dlnaclock.util.PreferenceHelper;
 import com.dlnaclock.screensaver.wallpaper.GestureAwareWallpaper;
 import com.dlnaclock.screensaver.wallpaper.ParamStore;
+import com.dlnaclock.screensaver.wallpaper.ScriptManager;
 import com.dlnaclock.screensaver.wallpaper.WallpaperRenderer;
 import com.dlnaclock.screensaver.wallpaper.WallpaperFactory;
 
@@ -27,7 +28,8 @@ import java.io.File;
 
 /**
  * BackgroundManager - 屏保背景管理器
- * 支持背景模式：纯色、静态图片（多种适应模式）、视频循环播放、动态壁纸
+ * 支持背景模式：纯色、静态图片（多种适应模式）、视频循环播放、动态壁纸、Lua 自定义壁纸
+ * 视频背景使用 IJK (FFmpeg) 引擎渲染到 TextureView，支持 mkv/avi 等全格式
  */
 public class BackgroundManager {
 
@@ -36,6 +38,7 @@ public class BackgroundManager {
     private static final int MODE_IMAGE = 1;  // 图片背景
     private static final int MODE_VIDEO = 2;  // 视频背景
     private static final int MODE_WALLPAPER = 3; // 动态壁纸
+    private static final int MODE_LUA = 4;    // Lua 自定义壁纸
 
     // 图片适应模式
     public static final int FIT_CENTER_CROP = 0;   // 居中裁剪
@@ -51,8 +54,9 @@ public class BackgroundManager {
     private int backgroundColor;
     private int imageFitMode;
     private Bitmap backgroundImage;
-    private MediaPlayer videoPlayer;
-    private SurfaceView videoSurface;
+    private IjkPlayerWrapper videoPlayer;      // 背景视频播放器（FFmpeg 全格式）
+    private TextureView videoTexture;          // 背景视频渲染层（由 ScreenSaverActivity 注入）
+    private boolean videoSurfaceReady = false; // TextureView surface 是否已就绪
     private Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
 
     // 动态壁纸
@@ -86,13 +90,18 @@ public class BackgroundManager {
             }
         }
 
-        if (mode == MODE_WALLPAPER) {
-            int type = PreferenceHelper.getWallpaperType();
+        if (mode == MODE_WALLPAPER || mode == MODE_LUA) {
             try {
-                wallpaperRenderer = WallpaperFactory.create(type);
-                // 立即加载已保存的参数，供 initWallpaper 后应用
-                if (wallpaperRenderer != null) {
-                    savedWallpaperParams = ParamStore.loadParams(type, wallpaperRenderer.getParamDefs());
+                if (mode == MODE_LUA) {
+                    // Lua 自定义壁纸：按所选脚本创建渲染器（参数在 init 时自行加载）
+                    wallpaperRenderer = createLuaWallpaper();
+                } else {
+                    int type = PreferenceHelper.getWallpaperType();
+                    wallpaperRenderer = WallpaperFactory.create(type);
+                    // 立即加载已保存的参数，供 initWallpaper 后应用
+                    if (wallpaperRenderer != null) {
+                        savedWallpaperParams = ParamStore.loadParams(type, wallpaperRenderer.getParamDefs());
+                    }
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Failed to create wallpaper", e);
@@ -101,6 +110,17 @@ public class BackgroundManager {
             }
             wallpaperStartTime = System.currentTimeMillis();
         }
+    }
+
+    /** createLuaWallpaper - 按所选脚本路径创建 Lua 壁纸渲染器（内置脚本与外部文件均支持） */
+    private WallpaperRenderer createLuaWallpaper() {
+        String path = PreferenceHelper.getSelectedLuaScript();
+        for (ScriptManager.ScriptInfo info : ScriptManager.getAvailableScripts()) {
+            if (info.path.equals(path)) {
+                return WallpaperFactory.create(info);
+            }
+        }
+        return WallpaperFactory.create(path);
     }
 
     /**
@@ -167,10 +187,11 @@ public class BackgroundManager {
     private int calculateInSampleSize(int srcWidth, int srcHeight, int maxW, int maxH) {
         int inSampleSize = 1;
         if (srcWidth > maxW || srcHeight > maxH) {
-            int halfWidth = srcWidth / 2;
-            int halfHeight = srcHeight / 2;
-            while ((halfWidth / inSampleSize) >= maxW
-                    && (halfHeight / inSampleSize) >= maxH) {
+            // 任一边超限就采样：分别按宽/高计算所需采样率，取较大者（2 的幂）
+            int sampleW = srcWidth / maxW;
+            int sampleH = srcHeight / maxH;
+            int target = Math.max(sampleW, sampleH);
+            while (inSampleSize * 2 <= target) {
                 inSampleSize *= 2;
             }
         }
@@ -201,6 +222,8 @@ public class BackgroundManager {
     public void reloadConfig() {
         release();
         loadConfig();
+        // 视频背景：重新加载后尝试重建播放器并刷新 TextureView 可见性
+        updateVideoTexture();
     }
 
     /** setGestureTransform - 注入手势变换（由 ScreenSaverView 创建并注入） */
@@ -236,11 +259,11 @@ public class BackgroundManager {
                 break;
 
             case MODE_VIDEO:
-                // Video is drawn on SurfaceView, canvas just draws black
-                canvas.drawColor(Color.BLACK);
+                // 视频由 TextureView 独立渲染层播放，Canvas 保持透明避免遮挡视频
                 break;
 
             case MODE_WALLPAPER:
+            case MODE_LUA:
                 if (wallpaperCrashed) {
                     // 上次崩溃后自动重建壁纸
                     wallpaperCrashed = false;
@@ -250,11 +273,16 @@ public class BackgroundManager {
                         } catch (Exception ignored) {}
                         wallpaperRenderer = null;
                     }
-                    int type = PreferenceHelper.getWallpaperType();
                     try {
-                        wallpaperRenderer = WallpaperFactory.create(type);
-                        if (wallpaperRenderer != null) {
-                            savedWallpaperParams = ParamStore.loadParams(type, wallpaperRenderer.getParamDefs());
+                        if (mode == MODE_LUA) {
+                            wallpaperRenderer = createLuaWallpaper();
+                            savedWallpaperParams = null;
+                        } else {
+                            int type = PreferenceHelper.getWallpaperType();
+                            wallpaperRenderer = WallpaperFactory.create(type);
+                            if (wallpaperRenderer != null) {
+                                savedWallpaperParams = ParamStore.loadParams(type, wallpaperRenderer.getParamDefs());
+                            }
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to recreate wallpaper after crash", e);
@@ -402,30 +430,200 @@ public class BackgroundManager {
         }
     }
 
-    public void setupVideoBackground(SurfaceView surfaceView) {
-        if (mode != MODE_VIDEO) return;
-
-        this.videoSurface = surfaceView;
-        String videoPath = PreferenceHelper.getBackgroundVideoPath();
-        if (videoPath == null || videoPath.isEmpty() || !new File(videoPath).exists()) {
-            return;
+    /**
+     * attachVideoTexture - 注入视频背景渲染层（由 ScreenSaverActivity 在布局加载后调用）
+     * 监听 TextureView 的 surface 生命周期，就绪后自动创建播放器
+     */
+    public void attachVideoTexture(TextureView textureView) {
+        this.videoTexture = textureView;
+        if (textureView == null) return;
+        textureView.setSurfaceTextureListener(surfaceTextureListener);
+        // 若 surface 已就绪（如 Activity 重建复用），立即尝试播放
+        if (textureView.isAvailable()) {
+            videoSurfaceReady = true;
+            tryStartVideo();
         }
+        updateVideoTexture();
+    }
+
+    /** SurfaceTexture 生命周期监听 - surface 就绪后创建播放器，销毁时释放 */
+    private TextureView.SurfaceTextureListener surfaceTextureListener = new TextureView.SurfaceTextureListener() {
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+            videoSurfaceReady = true;
+            tryStartVideo();
+        }
+
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            // 尺寸变化无需处理
+        }
+
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            videoSurfaceReady = false;
+            releaseVideoPlayer();
+            return true;
+        }
+
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+            // 帧更新无需处理
+        }
+    };
+
+    /**
+     * updateVideoTexture - 按当前模式刷新视频层：仅视频模式且文件存在时显示并播放
+     */
+    private void updateVideoTexture() {
+        if (videoTexture == null) return;
+        boolean shouldShow = mode == MODE_VIDEO && isBackgroundVideoAvailable();
+        videoTexture.setVisibility(shouldShow ? android.view.View.VISIBLE : android.view.View.GONE);
+        if (shouldShow) {
+            if (videoTexture.isAvailable()) {
+                videoSurfaceReady = true;
+                tryStartVideo();
+            }
+        } else {
+            releaseVideoPlayer();
+        }
+    }
+
+    /** isBackgroundVideoAvailable - 背景视频文件是否已配置且存在 */
+    private boolean isBackgroundVideoAvailable() {
+        String path = PreferenceHelper.getBackgroundVideoPath();
+        return path != null && !path.isEmpty() && new File(path).exists();
+    }
+
+    /**
+     * tryStartVideo - 使用 IJK (FFmpeg) 播放器创建背景视频（支持 mkv/avi 等全格式）
+     * 仅在 surface 就绪、视频模式、文件存在且播放器未创建时启动
+     */
+    private void tryStartVideo() {
+        if (!videoSurfaceReady || videoTexture == null) return;
+        if (mode != MODE_VIDEO) return;
+        if (!isBackgroundVideoAvailable()) return;
+        if (videoPlayer != null) return;
 
         try {
-            videoPlayer = new MediaPlayer();
-            videoPlayer.setDataSource(videoPath);
-            videoPlayer.setSurface(surfaceView.getHolder().getSurface());
-            videoPlayer.setLooping(true);
-            videoPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            videoPlayer = new IjkPlayerWrapper(context);
+            videoPlayer.setSurface(new android.view.Surface(videoTexture.getSurfaceTexture()));
+            videoPlayer.setListener(new IjkPlayerWrapper.MediaPlayerListener() {
                 @Override
-                public void onPrepared(MediaPlayer mp) {
-                    mp.start();
+                public void onPrepared() {
+                    // 双保险：再次确认循环标志后开始播放
+                    try {
+                        videoPlayer.getIjkMediaPlayer().setLooping(true);
+                    } catch (Exception e) {
+                        Log.w(TAG, "Failed to set looping", e);
+                    }
+                    videoPlayer.start();
                 }
+
+                @Override
+                public void onCompletion() {
+                    // 循环已由 setLooping 处理
+                }
+
+                @Override
+                public void onError(int what, int extra) {
+                    Log.e(TAG, "Background video error: " + what + ", " + extra);
+                }
+
+                @Override
+                public void onBufferingUpdate(int percent) {}
+
+                @Override
+                public void onVideoSizeChanged(int width, int height) {}
             });
-            videoPlayer.prepareAsync();
+            videoPlayer.setDataSource(PreferenceHelper.getBackgroundVideoPath());
+            // 循环播放：prepare 完成前设置循环标志（IjkPlayerWrapper 重试重建后由 onPrepared 兜底）
+            try {
+                videoPlayer.getIjkMediaPlayer().setLooping(true);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to set looping", e);
+            }
+            // 静音设置：根据偏好设置播放器音量（0=静音 1=有声）
+            try {
+                tv.danmaku.ijk.media.player.IjkMediaPlayer ijk = videoPlayer.getIjkMediaPlayer();
+                if (ijk != null) {
+                    float vol = PreferenceHelper.isBackgroundVideoMuted() ? 0f : 1f;
+                    ijk.setVolume(vol, vol);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to apply initial volume", e);
+            }
+            Log.i(TAG, "Background video started: " + PreferenceHelper.getBackgroundVideoPath());
         } catch (Exception e) {
             Log.e(TAG, "Failed to setup video background", e);
+            releaseVideoPlayer();
         }
+    }
+
+    /** releaseVideoPlayer - 释放背景视频播放器 */
+    private void releaseVideoPlayer() {
+        if (videoPlayer != null) {
+            try {
+                videoPlayer.release();
+            } catch (Exception e) {
+                // ignore
+            }
+            videoPlayer = null;
+        }
+    }
+
+    /** pauseVideo - 暂停背景视频（Activity onPause 时调用，避免后台播放） */
+    public void pauseVideo() {
+        if (videoPlayer != null) {
+            try {
+                videoPlayer.pause();
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+    }
+
+    /**
+     * resumeVideo - 恢复背景视频播放（DLNA 投屏结束后调用）
+     * 仅在视频模式且播放器已就绪时恢复
+     */
+    public void resumeVideo() {
+        if (mode != MODE_VIDEO) return;
+        if (videoPlayer != null) {
+            try {
+                if (!videoPlayer.isPlaying()) {
+                    videoPlayer.start();
+                    Log.i(TAG, "Background video resumed");
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to resume video", e);
+            }
+        }
+    }
+
+    /**
+     * setVideoMuted - 动态设置背景视频是否静音
+     * 通过 IjkMediaPlayer.setVolume 控制，不重启播放器
+     */
+    public void setVideoMuted(boolean muted) {
+        PreferenceHelper.setBackgroundVideoMuted(muted);
+        if (videoPlayer != null) {
+            try {
+                tv.danmaku.ijk.media.player.IjkMediaPlayer ijk = videoPlayer.getIjkMediaPlayer();
+                if (ijk != null) {
+                    float vol = muted ? 0f : 1f;
+                    ijk.setVolume(vol, vol);
+                    Log.i(TAG, "Background video volume set to " + vol);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to set video volume", e);
+            }
+        }
+    }
+
+    /** isVideoMuted - 查询背景视频是否静音 */
+    public boolean isVideoMuted() {
+        return PreferenceHelper.isBackgroundVideoMuted();
     }
 
     public void release() {
@@ -439,7 +637,6 @@ public class BackgroundManager {
         }
         if (videoPlayer != null) {
             try {
-                videoPlayer.stop();
                 videoPlayer.release();
             } catch (Exception e) {
                 // ignore
@@ -454,14 +651,14 @@ public class BackgroundManager {
 
     public int getMode() { return mode; }
     public boolean isVideoMode() { return mode == MODE_VIDEO; }
-    public boolean isWallpaperMode() { return mode == MODE_WALLPAPER; }
+    public boolean isWallpaperMode() { return mode == MODE_WALLPAPER || mode == MODE_LUA; }
 
     /** getWallpaperRenderer - 获取当前壁纸渲染器（用于参数控制面板） */
     public WallpaperRenderer getWallpaperRenderer() { return wallpaperRenderer; }
 
     /** initWallpaper - 初始化/重新初始化壁纸尺寸 */
     public void initWallpaper(int width, int height) {
-        if (mode == MODE_WALLPAPER && wallpaperRenderer != null) {
+        if ((mode == MODE_WALLPAPER || mode == MODE_LUA) && wallpaperRenderer != null) {
             try {
                 wallpaperRenderer.init(width, height);
                 // init 后立即应用已保存的参数（覆盖默认值）

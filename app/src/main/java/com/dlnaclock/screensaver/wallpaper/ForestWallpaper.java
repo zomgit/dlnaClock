@@ -151,7 +151,7 @@ public class ForestWallpaper implements WallpaperRenderer {
             for (int t = -2; t < treeCount; t++) {
                 float x = t * treeWidth - offset;
                 // 三角形树冠
-                float tipY = baseY - treeH * (0.6f + 0.4f * (float) Math.sin(t * 1.7f + layer));
+                float tipY = baseY - treeH * (0.6f + 0.4f * TrigLut.sin(t * 1.7f + layer));
                 float halfW = treeWidth * 0.5f;
 
                 path.lineTo(x, baseY);
@@ -209,7 +209,7 @@ public class ForestWallpaper implements WallpaperRenderer {
         float cycle = 120f; // 120秒一个周期
         float t = (timeSec % cycle) / cycle; // 0→1
         float cx = w * (0.1f + t * 0.8f); // 从左到右
-        float cy = h * (0.15f + 0.08f * (float) Math.sin(t * Math.PI)); // 弧线轨迹
+        float cy = h * (0.15f + 0.08f * TrigLut.sin(t * (float) Math.PI)); // 弧线轨迹
         float baseRadius = Math.min(w, h) * 0.06f;
 
         if (celestialType == 1 || celestialType == 3) {

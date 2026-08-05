@@ -1,12 +1,12 @@
 package com.dlnaclock.settings;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.BitmapFactory;
-import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,6 +28,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -59,6 +60,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -90,9 +92,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     // Digital clock font settings
     private LinearLayout digitalFontLayout;
-    private Spinner numberFontSpinner;
-    private Spinner englishFontSpinner;
-    private Spinner chineseFontSpinner;
+    private Button numberFontBtn;
+    private Button englishFontBtn;
+    private Button chineseFontBtn;
 
     // Minimal clock settings (new profile-based)
     private LinearLayout minimalSettingsLayout;
@@ -125,6 +127,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Button bgColorBtn;
     private Button bgImageBtn;
     private Button bgVideoBtn;
+    private CheckBox bgVideoMuteCheck;
     private TextView bgImageName;
     private TextView bgVideoName;
     private Spinner bgImageFitSpinner;
@@ -174,9 +177,11 @@ public class SettingsActivity extends AppCompatActivity {
         Spinner formatSpinner;
         EditText customFormatEdit;
         CheckBox use12HourCheck;
-        Spinner fontSpinner;
+        Button fontButton;
         Button colorBtn;
         TextView colorValue;
+        SeekBar sizeSeekBar;
+        TextView sizeValue;
         Button statusItemsBtn;
         LinearLayout rotateLayout;
         SeekBar rotateSeekBar;
@@ -452,26 +457,41 @@ public class SettingsActivity extends AppCompatActivity {
 
         // === Digital clock font settings ===
         digitalFontLayout = (LinearLayout) findViewById(R.id.layout_digital_font);
-        numberFontSpinner = (Spinner) findViewById(R.id.spinner_number_font);
-        englishFontSpinner = (Spinner) findViewById(R.id.spinner_english_font);
-        chineseFontSpinner = (Spinner) findViewById(R.id.spinner_chinese_font);
+        numberFontBtn = (Button) findViewById(R.id.btn_number_font);
+        englishFontBtn = (Button) findViewById(R.id.btn_english_font);
+        chineseFontBtn = (Button) findViewById(R.id.btn_chinese_font);
 
-        setupFontSpinner(numberFontSpinner, new FontSelectionListener() {
+        setupFontFamilyButton(numberFontBtn, new FontFamilyProvider() {
             @Override
-            public void onFontSelected(String fontValue) {
-                PreferenceHelper.setNumberFont(fontValue);
+            public String getCurrentFontFamily() {
+                return PreferenceHelper.getNumberFont();
+            }
+        }, new FontFamilyListener() {
+            @Override
+            public void onFontFamilyChanged(String fontFamily) {
+                PreferenceHelper.setNumberFont(fontFamily);
             }
         });
-        setupFontSpinner(englishFontSpinner, new FontSelectionListener() {
+        setupFontFamilyButton(englishFontBtn, new FontFamilyProvider() {
             @Override
-            public void onFontSelected(String fontValue) {
-                PreferenceHelper.setEnglishFont(fontValue);
+            public String getCurrentFontFamily() {
+                return PreferenceHelper.getEnglishFont();
+            }
+        }, new FontFamilyListener() {
+            @Override
+            public void onFontFamilyChanged(String fontFamily) {
+                PreferenceHelper.setEnglishFont(fontFamily);
             }
         });
-        setupFontSpinner(chineseFontSpinner, new FontSelectionListener() {
+        setupFontFamilyButton(chineseFontBtn, new FontFamilyProvider() {
             @Override
-            public void onFontSelected(String fontValue) {
-                PreferenceHelper.setChineseFont(fontValue);
+            public String getCurrentFontFamily() {
+                return PreferenceHelper.getChineseFont();
+            }
+        }, new FontFamilyListener() {
+            @Override
+            public void onFontFamilyChanged(String fontFamily) {
+                PreferenceHelper.setChineseFont(fontFamily);
             }
         });
 
@@ -586,6 +606,7 @@ public class SettingsActivity extends AppCompatActivity {
         bgColorBtn = (Button) findViewById(R.id.btn_bg_color);
         bgImageBtn = (Button) findViewById(R.id.btn_bg_image);
         bgVideoBtn = (Button) findViewById(R.id.btn_bg_video);
+        bgVideoMuteCheck = (CheckBox) findViewById(R.id.check_bg_video_mute);
         bgImageName = (TextView) findViewById(R.id.tv_bg_image_name);
         bgVideoName = (TextView) findViewById(R.id.tv_bg_video_name);
         bgImageFitSpinner = (Spinner) findViewById(R.id.spinner_bg_image_fit);
@@ -606,11 +627,11 @@ public class SettingsActivity extends AppCompatActivity {
             wallpaperTypeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    // 加载期间不写回，避免覆盖主界面切到的 Lua 壁纸类型
+                    if (isLoadingSettings) return;
                     int wpType = spinnerPosToWallpaperType(position);
                     PreferenceHelper.setWallpaperType(wpType);
-                    if (!isLoadingSettings) {
-                        refreshWallpaperParamSection();
-                    }
+                    refreshWallpaperParamSection();
                 }
                 @Override
                 public void onNothingSelected(AdapterView<?> parent) {}
@@ -742,6 +763,17 @@ public class SettingsActivity extends AppCompatActivity {
                     Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                     intent.setType("video/*");
                     startActivityForResult(intent, PICK_VIDEO);
+                }
+            });
+        }
+
+        // 背景视频静音复选框
+        if (bgVideoMuteCheck != null) {
+            bgVideoMuteCheck.setChecked(PreferenceHelper.isBackgroundVideoMuted());
+            bgVideoMuteCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    PreferenceHelper.setBackgroundVideoMuted(isChecked);
                 }
             });
         }
@@ -1058,12 +1090,61 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
-        // --- Font spinner ---
+        // --- Font family button ---
         addLabel("字体");
-        holder.fontSpinner = new Spinner(this);
-        holder.fontSpinner.setBackgroundResource(R.drawable.bg_settings_spinner);
-        rowSettingsContainer.addView(holder.fontSpinner, spinnerParams());
-        setupRowFontSpinner(holder, rowIndex, config);
+        holder.fontButton = new Button(this);
+        holder.fontButton.setBackgroundResource(R.drawable.bg_settings_button);
+        holder.fontButton.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        holder.fontButton.setPadding(dp(12), 0, dp(12), 0);
+        holder.fontButton.setSingleLine(false);
+        holder.fontButton.setMaxLines(2);
+        holder.fontButton.setTextSize(13);
+        holder.fontButton.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        holder.fontButton.setAllCaps(false);
+        rowSettingsContainer.addView(holder.fontButton, spinnerParams());
+        setupRowFontButton(holder, rowIndex, config);
+
+        // --- Size ratio SeekBar ---
+        addLabel("字体大小");
+        LinearLayout sizeRow = new LinearLayout(this);
+        sizeRow.setOrientation(LinearLayout.HORIZONTAL);
+        sizeRow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams sizeRowParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        sizeRowParams.bottomMargin = getResources().getDimensionPixelSize(R.dimen.item_spacing);
+        rowSettingsContainer.addView(sizeRow, sizeRowParams);
+
+        // 百分比显示
+        holder.sizeValue = new TextView(this);
+        holder.sizeValue.setTextColor(ContextCompat.getColor(this, R.color.accent));
+        holder.sizeValue.setTextSize(14);
+        int progress = Math.round(config.getSizeRatio() * 100);
+        holder.sizeValue.setText(progress + "%");
+        sizeRow.addView(holder.sizeValue, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        holder.sizeSeekBar = new SeekBar(this);
+        holder.sizeSeekBar.setMax(95); // 5~100
+        holder.sizeSeekBar.setProgress(Math.max(0, progress - 5));
+        LinearLayout.LayoutParams ssParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        ssParams.setMargins(dp(8), 0, 0, 0);
+        sizeRow.addView(holder.sizeSeekBar, ssParams);
+        holder.sizeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int p, boolean fromUser) {
+                int pct = p + 5;
+                holder.sizeValue.setText(pct + "%");
+            }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int pct = seekBar.getProgress() + 5;
+                config.setSizeRatio(pct / 100f);
+                saveRowConfig(rowIndex, config);
+            }
+        });
 
         // --- Color button + hex ---
         LinearLayout colorRow = new LinearLayout(this);
@@ -1268,45 +1349,27 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
-    private void setupRowFontSpinner(final RowViewHolder holder, final int rowIndex, final MinimalRowConfig config) {
-        final List<SystemFontHelper.FontItem> fonts = SystemFontHelper.getDefaultFonts(this);
-        FontAdapter fontAdapter = new FontAdapter(fonts, "ABCabc 123 你好");
-        holder.fontSpinner.setAdapter(fontAdapter);
+    private void setupRowFontButton(final RowViewHolder holder, final int rowIndex, final MinimalRowConfig config) {
+        refreshRowFontButton(holder, config);
 
-        // Match current font in default list
-        int selectedIndex = SystemFontHelper.findIndexInDefaultFonts(this, config.getFontName());
-        if (selectedIndex < 0) selectedIndex = 0;
-        holder.fontSpinner.setSelection(selectedIndex);
-
-        holder.fontSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        holder.fontButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position < fonts.size()) {
-                    config.setFontName(fonts.get(position).value);
-                    saveRowConfig(rowIndex, config);
-                } else if (position == fonts.size()) {
-                    // "更多字体…" 选项
-                    showAllFontsDialog(new FontSelectionListener() {
-                        @Override
-                        public void onFontSelected(String fontValue) {
-                            config.setFontName(fontValue);
-                            saveRowConfig(rowIndex, config);
-                            // 刷新 spinner 显示
-                            refreshRowFontSpinner(holder, config);
-                        }
-                    });
-                }
+            public void onClick(View v) {
+                showFontFamilyDialog(config.getFontName(), new FontFamilyListener() {
+                    @Override
+                    public void onFontFamilyChanged(String fontFamily) {
+                        config.setFontName(fontFamily);
+                        saveRowConfig(rowIndex, config);
+                        refreshRowFontButton(holder, config);
+                    }
+                });
             }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
 
-    private void refreshRowFontSpinner(RowViewHolder holder, MinimalRowConfig config) {
-        List<SystemFontHelper.FontItem> fonts = SystemFontHelper.getDefaultFonts(this);
-        int idx = SystemFontHelper.findIndexInDefaultFonts(this, config.getFontName());
-        if (idx >= 0 && holder.fontSpinner != null) {
-            holder.fontSpinner.setSelection(idx);
+    private void refreshRowFontButton(RowViewHolder holder, MinimalRowConfig config) {
+        if (holder.fontButton != null) {
+            holder.fontButton.setText(SystemFontHelper.formatFontFamilyDisplay(this, config.getFontName()));
         }
     }
 
@@ -1470,112 +1533,79 @@ public class SettingsActivity extends AppCompatActivity {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 
-    /** showAllFontsDialog - 弹出完整字体列表对话框 */
-    private void showAllFontsDialog(final FontSelectionListener listener) {
-        final List<SystemFontHelper.FontItem> allFonts = SystemFontHelper.getAllFonts(this);
-        String[] names = new String[allFonts.size()];
-        for (int i = 0; i < allFonts.size(); i++) {
-            names[i] = allFonts.get(i).name;
-        }
+    /** showFontPickerDialog - 字体选择对话框（内置字体优先 + 实时预览） */
+    private void showFontPickerDialog(final FontSelectionListener listener) {
+        final List<SystemFontHelper.FontItem> allFonts = SystemFontHelper.getFontsBuiltInFirst(this);
+
+        ListView listView = new ListView(this);
+        listView.setAdapter(new FontPickerAdapter(allFonts));
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if (listener != null) {
+                    listener.onFontSelected(allFonts.get(position).value);
+                }
+            }
+        });
 
         new AlertDialog.Builder(this)
-                .setTitle("选择字体")
-                .setItems(names, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        if (listener != null) {
-                            listener.onFontSelected(allFonts.get(which).value);
-                        }
-                    }
-                })
+                .setTitle(R.string.font_family_select)
+                .setView(listView)
                 .setNegativeButton("取消", null)
                 .show();
     }
 
-    /** FontAdapter - 字体 Spinner 适配器，显示字体名称 + 预览文本 */
-    private static class FontAdapter extends BaseAdapter {
+    /** FontPickerAdapter - 字体选择适配器（每行显示字体名称+预览文本，用该字体渲染） */
+    private static class FontPickerAdapter extends BaseAdapter {
         private final List<SystemFontHelper.FontItem> fonts;
-        private final String previewText;
-        private static final String MORE_FONTS_LABEL = "更多字体…";
 
-        FontAdapter(List<SystemFontHelper.FontItem> fonts, String previewText) {
+        FontPickerAdapter(List<SystemFontHelper.FontItem> fonts) {
             this.fonts = fonts;
-            this.previewText = previewText;
         }
 
         @Override
-        public int getCount() { return fonts.size() + 1; } // +1 for "更多字体…"
+        public int getCount() { return fonts.size(); }
         @Override
-        public Object getItem(int position) {
-            if (position < fonts.size()) return fonts.get(position);
-            return MORE_FONTS_LABEL;
-        }
+        public Object getItem(int position) { return fonts.get(position); }
         @Override
         public long getItemId(int position) { return position; }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            return buildView(position, convertView, parent, false);
-        }
+            Context ctx = parent.getContext();
+            int density = (int) (ctx.getResources().getDisplayMetrics().density + 0.5f);
 
-        @Override
-        public View getDropDownView(int position, View convertView, ViewGroup parent) {
-            return buildView(position, convertView, parent, true);
-        }
-
-        private View buildView(int position, View convertView, ViewGroup parent, boolean isDropdown) {
-            LinearLayout layout;
+            LinearLayout row;
             TextView nameView;
             TextView previewView;
-
-            if (convertView instanceof LinearLayout && convertView.getTag() != null) {
-                layout = (LinearLayout) convertView;
-                nameView = (TextView) layout.getTag();
-                previewView = (TextView) layout.findViewWithTag("preview");
+            if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 2) {
+                row = (LinearLayout) convertView;
+                nameView = (TextView) row.getChildAt(0);
+                previewView = (TextView) row.getChildAt(1);
             } else {
-                layout = new LinearLayout(parent.getContext());
-                layout.setOrientation(LinearLayout.VERTICAL);
-                int padH = isDropdown ? 24 : 16;
-                int padV = isDropdown ? 12 : 8;
-                layout.setPadding(padH, padV, padH, padV);
+                row = new LinearLayout(ctx);
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setPadding(20 * density, 10 * density, 20 * density, 10 * density);
 
-                nameView = new TextView(parent.getContext());
-                nameView.setTextSize(15);
-                nameView.setTextColor(0xFFFFFFFF);
-                nameView.setSingleLine(true);
-                layout.addView(nameView);
+                nameView = new TextView(ctx);
+                row.addView(nameView);
 
-                previewView = new TextView(parent.getContext());
-                previewView.setTag("preview");
-                previewView.setTextSize(12);
-                previewView.setTextColor(0xFF888888);
-                previewView.setSingleLine(true);
-                layout.addView(previewView);
-
-                layout.setTag(nameView);
+                previewView = new TextView(ctx);
+                row.addView(previewView);
             }
 
-            if (position < fonts.size()) {
-                SystemFontHelper.FontItem item = fonts.get(position);
-                nameView.setText(item.name);
-                if (item.typeface != null) {
-                    nameView.setTypeface(item.typeface);
-                    previewView.setTypeface(item.typeface);
-                } else {
-                    nameView.setTypeface(Typeface.DEFAULT);
-                    previewView.setTypeface(Typeface.DEFAULT);
-                }
-                previewView.setText(previewText);
-                previewView.setVisibility(View.VISIBLE);
-            } else {
-                // "更多字体…" 选项
-                nameView.setText(MORE_FONTS_LABEL);
-                nameView.setTypeface(Typeface.DEFAULT);
-                previewView.setTypeface(Typeface.DEFAULT);
-                previewView.setVisibility(View.GONE);
-            }
+            SystemFontHelper.FontItem item = fonts.get(position);
+            nameView.setText(item.name);
+            nameView.setTextSize(15);
+            nameView.setTextColor(0xFFFFFFFF);
+            nameView.setTypeface(item.typeface);
 
-            return layout;
+            previewView.setText("0123456789 \u4f60\u597d ABC");
+            previewView.setTextSize(12);
+            previewView.setTextColor(0xFF888888);
+            previewView.setTypeface(item.typeface);
+
+            return row;
         }
     }
 
@@ -1622,9 +1652,9 @@ public class SettingsActivity extends AppCompatActivity {
         currentClockColor = PreferenceHelper.getClockFontColor();
         updateClockColorDisplay();
 
-        loadFontSpinner(numberFontSpinner, PreferenceHelper.getNumberFont());
-        loadFontSpinner(englishFontSpinner, PreferenceHelper.getEnglishFont());
-        loadFontSpinner(chineseFontSpinner, PreferenceHelper.getChineseFont());
+        loadFontFamilyButton(numberFontBtn, PreferenceHelper.getNumberFont());
+        loadFontFamilyButton(englishFontBtn, PreferenceHelper.getEnglishFont());
+        loadFontFamilyButton(chineseFontBtn, PreferenceHelper.getChineseFont());
 
         updateProfileBarHighlight();
 
@@ -1739,31 +1769,198 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    private void setupFontSpinner(Spinner spinner, final FontSelectionListener listener) {
-        if (spinner == null) return;
-        final List<SystemFontHelper.FontItem> fonts = SystemFontHelper.getDefaultFonts(this);
-        FontAdapter fontAdapter = new FontAdapter(fonts, "ABCabc 123 你好");
-        spinner.setAdapter(fontAdapter);
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+    /** setupFontFamilyButton - 绑定字体族按钮（点击弹出字体族编辑对话框） */
+    private void setupFontFamilyButton(Button button, final FontFamilyProvider provider, final FontFamilyListener listener) {
+        if (button == null) return;
+        button.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position < fonts.size() && listener != null) {
-                    listener.onFontSelected(fonts.get(position).value);
-                } else if (position == fonts.size()) {
-                    // "更多字体…"
-                    showAllFontsDialog(listener);
+            public void onClick(View v) {
+                if (provider != null) {
+                    showFontFamilyDialog(provider.getCurrentFontFamily(), listener);
                 }
             }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
 
-    private void loadFontSpinner(Spinner spinner, String currentValue) {
-        if (spinner == null) return;
-        int index = SystemFontHelper.findIndexInDefaultFonts(this, currentValue);
-        if (index < 0) index = 0;
-        spinner.setSelection(index);
+    /** loadFontFamilyButton - 加载字体族值到按钮显示 */
+    private void loadFontFamilyButton(Button button, String currentFamily) {
+        if (button == null) return;
+        button.setText(SystemFontHelper.formatFontFamilyDisplay(this, currentFamily));
+    }
+
+    /**
+     * showFontFamilyDialog - 字体族编辑对话框（固定3行，空位显示"系统默认"）
+     * 每行可点击选择字体，已选行可删除恢复默认
+     */
+    private void showFontFamilyDialog(String currentFamily, final FontFamilyListener listener) {
+        // 初始化3个槽位，不足的补"default"
+        final List<String> values = new ArrayList<>();
+        String[] parsed = SystemFontHelper.parseFontFamily(currentFamily);
+        for (int i = 0; i < 3; i++) {
+            values.add(i < parsed.length ? parsed[i] : "default");
+        }
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(20), dp(12), dp(20), 0);
+
+        // 说明文字
+        TextView desc = new TextView(this);
+        desc.setText(getString(R.string.font_family_desc, SystemFontHelper.MAX_FONT_FAMILY));
+        desc.setTextSize(12);
+        desc.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        root.addView(desc);
+
+        // 字体列表（固定3行）
+        final ListView listView = new ListView(this);
+        listView.setDividerHeight(0);
+        LinearLayout.LayoutParams listLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        listLp.topMargin = dp(8);
+        root.addView(listView, listLp);
+
+        // 预览
+        final TextView preview = new TextView(this);
+        preview.setText(R.string.font_family_preview);
+        preview.setTextSize(20);
+        preview.setTextColor(0xFFFFFFFF);
+        LinearLayout.LayoutParams prevLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        prevLp.topMargin = dp(12);
+        root.addView(preview, prevLp);
+        updateFontFamilyPreview(preview, values);
+
+        final FontFamilyAdapter[] adapterHolder = new FontFamilyAdapter[1];
+        adapterHolder[0] = new FontFamilyAdapter(this, values, new FontFamilyAdapter.OnRowClickListener() {
+            @Override
+            public void onRowClick(int position) {
+                showFontPickerDialog(new FontSelectionListener() {
+                    @Override
+                    public void onFontSelected(String fontValue) {
+                        values.set(position, fontValue);
+                        adapterHolder[0].notifyDataSetChanged();
+                        updateFontFamilyPreview(preview, values);
+                    }
+                });
+            }
+        });
+        final FontFamilyAdapter adapter = adapterHolder[0];
+        listView.setAdapter(adapter);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.font_family_dialog_title)
+                .setView(root)
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (listener != null) {
+                            StringBuilder sb = new StringBuilder();
+                            for (String v : values) {
+                                if (!"default".equals(v)) {
+                                    if (sb.length() > 0) sb.append(SystemFontHelper.FONT_SEPARATOR).append(" ");
+                                    sb.append(v);
+                                }
+                            }
+                            listener.onFontFamilyChanged(sb.toString());
+                        }
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /** updateFontFamilyPreview - 用字体族中第一个字体刷新预览 */
+    private void updateFontFamilyPreview(TextView preview, List<String> values) {
+        if (preview == null || values == null || values.isEmpty()) return;
+        preview.setTypeface(SystemFontHelper.resolveTypeface(this, values.get(0)));
+    }
+
+    /** FontFamilyAdapter - 字体族列表适配器（固定3行，空位显示"系统默认"，已选行可删除恢复默认） */
+    private static class FontFamilyAdapter extends BaseAdapter {
+        interface OnRowClickListener {
+            void onRowClick(int position);
+        }
+    
+        private final Context context;
+        private final List<String> values; // 固定3项，未选存"default"
+        private final OnRowClickListener rowClickListener;
+    
+        FontFamilyAdapter(Context context, List<String> values, OnRowClickListener rowClickListener) {
+            this.context = context;
+            this.values = values;
+            this.rowClickListener = rowClickListener;
+        }
+    
+        @Override
+        public int getCount() { return 3; }
+        @Override
+        public Object getItem(int position) { return values.get(position); }
+        @Override
+        public long getItemId(int position) { return position; }
+    
+        @Override
+        public View getView(final int position, View convertView, ViewGroup parent) {
+            int density = (int) (context.getResources().getDisplayMetrics().density + 0.5f);
+            LinearLayout row;
+            TextView nameView;
+            TextView deleteView;
+            if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 2) {
+                row = (LinearLayout) convertView;
+                nameView = (TextView) row.getChildAt(0);
+                deleteView = (TextView) row.getChildAt(1);
+            } else {
+                row = new LinearLayout(context);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(16 * density, 8 * density, 8 * density, 8 * density);
+    
+                nameView = new TextView(context);
+                nameView.setTextSize(15);
+                nameView.setSingleLine(true);
+                row.addView(nameView, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+    
+                deleteView = new TextView(context);
+                deleteView.setText("\u2715");
+                deleteView.setTextSize(18);
+                deleteView.setTextColor(0xFF888888);
+                deleteView.setPadding(12 * density, 0, 4 * density, 0);
+                row.addView(deleteView);
+            }
+    
+            String value = values.get(position);
+            String prefix = context.getString(R.string.font_family_priority, position + 1);
+            String displayName = SystemFontHelper.getFontDisplayName(context, value);
+            boolean isDefault = "default".equals(value);
+    
+            nameView.setText(prefix + ": " + displayName);
+            if (isDefault) {
+                nameView.setTextColor(0xFF888888);
+                nameView.setTypeface(null);
+                deleteView.setVisibility(View.GONE);
+            } else {
+                nameView.setTextColor(0xFFFFFFFF);
+                nameView.setTypeface(SystemFontHelper.resolveTypeface(context, value));
+                deleteView.setVisibility(View.VISIBLE);
+            }
+    
+            // 整行点击选择字体
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (rowClickListener != null) rowClickListener.onRowClick(position);
+                }
+            });
+    
+            // 删除按钮：恢复为默认
+            deleteView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    values.set(position, "default");
+                    notifyDataSetChanged();
+                }
+            });
+            return row;
+        }
     }
 
     private void updateClockColorDisplay() {
@@ -1894,7 +2091,8 @@ public class SettingsActivity extends AppCompatActivity {
         if (type < WallpaperFactory.LUA_WALLPAPER_ID) {
             return Math.min(type, WallpaperFactory.WALLPAPER_COUNT - 1);
         }
-        return WallpaperFactory.WALLPAPER_COUNT + (type - WallpaperFactory.LUA_WALLPAPER_ID);
+        // Lua 壁纸不在内置 spinner 列表中（mode==3），回退到最后一项避免越界
+        return WallpaperFactory.WALLPAPER_COUNT - 1;
     }
 
     // ========== Lua 壁纸管理 ==========
@@ -2345,35 +2543,48 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && data != null && data.getData() != null) {
-            Uri uri = data.getData();
-            try {
-                if (requestCode == PICK_IMAGE) {
-                    // 先验证图片可解码
-                    if (!validateImageUri(uri)) {
-                        Toast.makeText(this, "无法解析该图片文件，请选择有效的图片", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    String savedPath = copyUriToInternalStorage(uri, "bg_image");
-                    if (savedPath != null) {
-                        PreferenceHelper.setBackgroundImagePath(savedPath);
-                        updateBackgroundUI();
-                    } else {
-                        Toast.makeText(this, "保存图片失败", Toast.LENGTH_SHORT).show();
-                    }
-                } else if (requestCode == PICK_VIDEO) {
-                    String savedPath = copyUriToInternalStorage(uri, "bg_video");
-                    if (savedPath != null) {
-                        PreferenceHelper.setBackgroundVideoPath(savedPath);
-                        updateBackgroundUI();
-                    } else {
-                        Toast.makeText(this, "保存视频失败", Toast.LENGTH_SHORT).show();
-                    }
+        if (resultCode != RESULT_OK) return;
+
+        // 兼容部分文件管理器仅返回 CLIP_DATA 或 data 为 null 的情况
+        Uri uri = null;
+        if (data != null && data.getData() != null) {
+            uri = data.getData();
+        } else if (data != null && data.getClipData() != null && data.getClipData().getItemCount() > 0) {
+            uri = data.getClipData().getItemAt(0).getUri();
+        }
+        if (uri == null) {
+            Toast.makeText(this, "未获取到所选文件，请重试", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            if (requestCode == PICK_IMAGE) {
+                // 先验证图片可解码
+                if (!validateImageUri(uri)) {
+                    Toast.makeText(this, "无法解析该图片文件，请选择有效的图片", Toast.LENGTH_SHORT).show();
+                    return;
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error saving file", e);
-                Toast.makeText(this, "选择文件失败", Toast.LENGTH_SHORT).show();
+                String savedPath = copyUriToInternalStorage(uri, "bg_image");
+                if (savedPath != null) {
+                    PreferenceHelper.setBackgroundImagePath(savedPath);
+                    updateBackgroundUI();
+                    Toast.makeText(this, "图片背景已保存", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "保存图片失败", Toast.LENGTH_SHORT).show();
+                }
+            } else if (requestCode == PICK_VIDEO) {
+                String savedPath = copyUriToInternalStorage(uri, "bg_video");
+                if (savedPath != null) {
+                    PreferenceHelper.setBackgroundVideoPath(savedPath);
+                    updateBackgroundUI();
+                    Toast.makeText(this, "视频背景已保存", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "保存视频失败", Toast.LENGTH_SHORT).show();
+                }
             }
+        } catch (Exception e) {
+            Log.e(TAG, "Error saving file", e);
+            Toast.makeText(this, "选择文件失败", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -2441,6 +2652,16 @@ public class SettingsActivity extends AppCompatActivity {
 
     private interface FontSelectionListener {
         void onFontSelected(String fontValue);
+    }
+
+    /** FontFamilyListener - 字体族变更回调 */
+    private interface FontFamilyListener {
+        void onFontFamilyChanged(String fontFamily);
+    }
+
+    /** FontFamilyProvider - 字体族当前值提供者 */
+    private interface FontFamilyProvider {
+        String getCurrentFontFamily();
     }
 
     @Override
