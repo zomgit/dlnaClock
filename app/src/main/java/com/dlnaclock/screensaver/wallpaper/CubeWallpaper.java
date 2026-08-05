@@ -95,9 +95,9 @@ public class CubeWallpaper implements WallpaperRenderer, GestureAwareWallpaper {
         float gesRadX = (float) Math.toRadians(gestureRotX);
         float gesRadY = (float) Math.toRadians(gestureRotY);
 
-        float cosX = (float) Math.cos(angleX + gesRadX), sinX = (float) Math.sin(angleX + gesRadX);
-        float cosY = (float) Math.cos(angleY + gesRadY), sinY = (float) Math.sin(angleY + gesRadY);
-        float cosZ = (float) Math.cos(angleZ), sinZ = (float) Math.sin(angleZ);
+        float cosX = TrigLut.cos(angleX + gesRadX), sinX = TrigLut.sin(angleX + gesRadX);
+        float cosY = TrigLut.cos(angleY + gesRadY), sinY = TrigLut.sin(angleY + gesRadY);
+        float cosZ = TrigLut.cos(angleZ), sinZ = TrigLut.sin(angleZ);
 
         // 变换和投影每个顶点
         float perspective = 4f; // 透视距离

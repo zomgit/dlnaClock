@@ -5,6 +5,13 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
+    <!-- 视频背景层（仅视频背景模式可见，位于时钟层之下） -->
+    <TextureView
+        android:id="@+id/bg_video_surface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
     <com.dlnaclock.screensaver.ScreenSaverView
         android:id="@+id/screen_saver_view"
         android:layout_width="match_parent"
@@ -130,6 +137,18 @@
             android:contentDescription="@string/switch_bg"
             app:srcCompat="@drawable/ic_style"
             android:scaleType="centerInside" />
+
+        <!-- Toggle video mute (only visible in video mode) -->
+        <ImageButton
+            android:id="@+id/btn_toggle_video_mute"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="#80000000"
+            android:contentDescription="@string/toggle_video_mute"
+            app:srcCompat="@drawable/ic_volume_up"
+            android:scaleType="centerInside"
+            android:visibility="gone" />
 
     </LinearLayout>
 

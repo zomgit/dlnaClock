@@ -37,17 +37,22 @@ public class MinimalRowConfig {
     private String customText;        // 自定义显示文本（仅CUSTOM类型有效）
     private int statusItems;          // 状态位掩码（仅STATUS类型有效）
     private int rotateInterval;       // 轮播间隔秒数（仅STATUS类型有效）
+    private float sizeRatio;          // 字号比例（相对于主字号，默认1.0）
+
+    /** 默认字体族（最多3项，按顺序优先渲染，逗号分隔） */
+    public static final String DEFAULT_ROW_FONT = "Rajdhani Medium,Microsoft YaHei";
 
     /** 创建默认配置 */
     public MinimalRowConfig() {
         this.contentType = ContentType.NONE;
         this.format = "HH:mm:ss";
         this.use12Hour = false;
-        this.fontName = "Rajdhani Medium";
+        this.fontName = DEFAULT_ROW_FONT;
         this.color = 0xFFFFFFFF;
         this.customText = "";
         this.statusItems = 0;
         this.rotateInterval = 5;
+        this.sizeRatio = 1.0f;
     }
 
     /** 创建指定内容类型的默认配置 */
@@ -57,23 +62,23 @@ public class MinimalRowConfig {
         switch (type) {
             case TIME:
                 config.format = "HH:mm:ss";
-                config.fontName = "Rajdhani Medium";
+                config.fontName = DEFAULT_ROW_FONT;
                 config.color = 0xFFFFFFFF;
                 break;
             case DATE:
                 config.format = "yyyy-MM-dd";
-                config.fontName = "default";
-                config.color = 0xB5000000; // alpha=181
+                config.fontName = DEFAULT_ROW_FONT;
+                config.color = 0xFFFFFFFF;
                 break;
             case STATUS:
-                config.fontName = "default";
-                config.color = 0x8C000000; // alpha=140
+                config.fontName = DEFAULT_ROW_FONT;
+                config.color = 0xFFFFFFFF;
                 config.statusItems = 3;
                 config.rotateInterval = 5;
                 break;
             case CUSTOM:
-                config.fontName = "default";
-                config.color = 0xB5000000;
+                config.fontName = DEFAULT_ROW_FONT;
+                config.color = 0xFFFFFFFF;
                 config.customText = "";
                 break;
             case NONE:
@@ -94,6 +99,7 @@ public class MinimalRowConfig {
         c.customText = this.customText;
         c.statusItems = this.statusItems;
         c.rotateInterval = this.rotateInterval;
+        c.sizeRatio = this.sizeRatio;
         return c;
     }
 
@@ -111,6 +117,7 @@ public class MinimalRowConfig {
             obj.put("customText", customText != null ? customText : "");
             obj.put("statusItems", statusItems);
             obj.put("rotateInterval", rotateInterval);
+            obj.put("sizeRatio", sizeRatio);
             return obj.toString();
         } catch (Exception e) {
             return "{}";
@@ -126,11 +133,12 @@ public class MinimalRowConfig {
             config.contentType = ContentType.fromValue(obj.optInt("contentType", 0));
             config.format = obj.optString("format", "HH:mm:ss");
             config.use12Hour = obj.optBoolean("use12Hour", false);
-            config.fontName = obj.optString("fontName", "default");
+            config.fontName = obj.optString("fontName", DEFAULT_ROW_FONT);
             config.color = obj.optInt("color", 0xFFFFFFFF);
             config.customText = obj.optString("customText", "");
             config.statusItems = obj.optInt("statusItems", 0);
             config.rotateInterval = obj.optInt("rotateInterval", 5);
+            config.sizeRatio = (float) obj.optDouble("sizeRatio", 1.0);
         } catch (Exception e) {
             // 解析失败返回默认配置
         }
@@ -162,4 +170,7 @@ public class MinimalRowConfig {
 
     public int getRotateInterval() { return rotateInterval; }
     public void setRotateInterval(int rotateInterval) { this.rotateInterval = rotateInterval; }
+
+    public float getSizeRatio() { return sizeRatio; }
+    public void setSizeRatio(float sizeRatio) { this.sizeRatio = sizeRatio; }
 }

@@ -24,8 +24,8 @@ android {
         applicationId "com.dlnaclock"
         minSdk 19
         targetSdk 28
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.0.3"
     }
 
     buildTypes {

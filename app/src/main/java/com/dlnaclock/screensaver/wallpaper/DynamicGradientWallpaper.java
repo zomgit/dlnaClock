@@ -288,18 +288,18 @@ public class DynamicGradientWallpaper implements WallpaperRenderer {
      */
     private void drawBlob(Canvas canvas, int i, float t) {
         // ── 位置缓慢漂移 ──
-        float dx = AMP_X * width * (float) Math.sin(t * freqX[i] + phaseX[i]);
-        float dy = AMP_Y * height * (float) Math.sin(t * freqY[i] + phaseY[i]);
+        float dx = AMP_X * width * TrigLut.sin(t * freqX[i] + phaseX[i]);
+        float dy = AMP_Y * height * TrigLut.sin(t * freqY[i] + phaseY[i]);
 
         float bx = baseX[i] * width + dx;
         float by = baseY[i] * height + dy;
 
         // ── 半径呼吸 ──
-        float radiusOsc = 1f + AMP_R * (float) Math.sin(t * freqR[i] + phaseR[i]);
+        float radiusOsc = 1f + AMP_R * TrigLut.sin(t * freqR[i] + phaseR[i]);
         float r = baseRadius[i] * radiusOsc;
 
         // ── 透明度呼吸 ──
-        float alphaOsc = 1f + AMP_A * (float) Math.sin(t * freqA[i] + phaseA[i]);
+        float alphaOsc = 1f + AMP_A * TrigLut.sin(t * freqA[i] + phaseA[i]);
         int alpha = (int) (baseAlpha[i] * alphaOsc * 2.55f); // userAlpha(0-100) → alpha(0-255)
         alpha = clamp(alpha, 15, 200);
 

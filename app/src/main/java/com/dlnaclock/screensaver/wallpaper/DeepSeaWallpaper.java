@@ -139,7 +139,7 @@ public class DeepSeaWallpaper implements WallpaperRenderer {
         int pc = partX != null ? partX.length : 0;
         for (int i = 0; i < pc; i++) {
             partY[i] -= partSpeed[i] * dt;
-            partX[i] += (float) Math.sin(timeSec + i) * 0.3f;
+            partX[i] += TrigLut.sin(timeSec + i) * 0.3f;
             if (partY[i] < -5) {
                 partY[i] = height + 5;
                 partX[i] = (float) Math.random() * width;
@@ -151,7 +151,7 @@ public class DeepSeaWallpaper implements WallpaperRenderer {
         for (int i = 0; i < jellyCount; i++) {
             // 水母缓慢上升 + 水平漂移
             jellyY[i] -= jellySpeed[i] * dt;
-            jellyX[i] += (float) Math.sin(timeSec * 0.3f + jellyPhase[i]) * jellyDrift[i] * dt;
+            jellyX[i] += TrigLut.sin(timeSec * 0.3f + jellyPhase[i]) * jellyDrift[i] * dt;
 
             if (jellyY[i] < -jellySize[i] * 3) {
                 jellyY[i] = height + jellySize[i] * 2;
@@ -166,7 +166,7 @@ public class DeepSeaWallpaper implements WallpaperRenderer {
     private void drawJellyfish(Canvas canvas, float x, float y, float size,
                                float timeSec, float phase, int alpha) {
         // 脉动效果
-        float pulse = 1f + 0.15f * (float) Math.sin(timeSec * 2f + phase);
+        float pulse = 1f + 0.15f * TrigLut.sin(timeSec * 2f + phase);
         float w = size * pulse;
         float h = size * 0.7f * (2f - pulse);
 
@@ -176,7 +176,7 @@ public class DeepSeaWallpaper implements WallpaperRenderer {
         jellyPath.cubicTo(x - w, y - h * 1.2f, x - w * 0.3f, y - h * 1.6f, x, y - h * 1.6f);
         jellyPath.cubicTo(x + w * 0.3f, y - h * 1.6f, x + w, y - h * 1.2f, x + w, y);
         // 底部波浪
-        float tentacleWave = (float) Math.sin(timeSec * 3f + phase) * w * 0.1f;
+        float tentacleWave = TrigLut.sin(timeSec * 3f + phase) * w * 0.1f;
         jellyPath.cubicTo(x + w * 0.6f, y + h * 0.3f + tentacleWave,
                 x + w * 0.2f, y + h * 0.2f - tentacleWave, x, y + h * 0.3f);
         jellyPath.cubicTo(x - w * 0.2f, y + h * 0.2f + tentacleWave,
@@ -194,8 +194,8 @@ public class DeepSeaWallpaper implements WallpaperRenderer {
         jellyPaint.setAlpha(alpha * userAlpha / 160);
         for (int t = -2; t <= 2; t++) {
             float tx = x + t * w * 0.3f;
-            float tentLen = size * (1.2f + 0.3f * (float) Math.sin(timeSec * 2.5f + phase + t));
-            float sway = (float) Math.sin(timeSec * 1.5f + phase + t * 0.8f) * w * 0.2f;
+            float tentLen = size * (1.2f + 0.3f * TrigLut.sin(timeSec * 2.5f + phase + t));
+            float sway = TrigLut.sin(timeSec * 1.5f + phase + t * 0.8f) * w * 0.2f;
             jellyPath.reset();
             jellyPath.moveTo(tx, y + h * 0.2f);
             jellyPath.cubicTo(tx + sway * 0.5f, y + tentLen * 0.4f,

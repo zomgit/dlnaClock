@@ -256,7 +256,7 @@ public class ScreenSaverView extends View {
                     lastBounceTick = now;
                 }
                 invalidate();
-                long interval = (backgroundManager.isWallpaperMode() || isBounceMode()) ? 33 : 1000;
+                long interval = (backgroundManager.isWallpaperMode() || isBounceMode()) ? 50 : 1000;
                 handler.postDelayed(this, interval);
             }
         }
@@ -266,7 +266,7 @@ public class ScreenSaverView extends View {
         handler.removeCallbacks(clockUpdateRunnable);
         lastBounceTick = 0;
         invalidate();
-        long interval = (backgroundManager.isWallpaperMode() || isBounceMode()) ? 33 : 1000;
+        long interval = (backgroundManager.isWallpaperMode() || isBounceMode()) ? 50 : 1000;
         handler.postDelayed(clockUpdateRunnable, interval);
     }
 

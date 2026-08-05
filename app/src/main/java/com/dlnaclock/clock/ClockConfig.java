@@ -62,10 +62,10 @@ public class ClockConfig {
     /** 默认时间格式 */
     public static final String DEFAULT_FORMAT = "HH:mm:ss";
 
-    /** 数字时钟默认字体 */
-    public static final String DEFAULT_NUMBER_FONT = "Rajdhani Medium";
-    public static final String DEFAULT_ENGLISH_FONT = "default";
-    public static final String DEFAULT_CHINESE_FONT = "default";
+    /** 默认字体族（最多3项，按顺序优先渲染，逗号分隔） */
+    public static final String DEFAULT_NUMBER_FONT = "Rajdhani Medium,Microsoft YaHei";
+    public static final String DEFAULT_ENGLISH_FONT = "Rajdhani Medium,Microsoft YaHei";
+    public static final String DEFAULT_CHINESE_FONT = "Rajdhani Medium,Microsoft YaHei";
 
     public ClockConfig() {
         this.style = ClockStyle.DIGITAL;
@@ -83,6 +83,10 @@ public class ClockConfig {
         this.minimalRows[0] = MinimalRowConfig.createDefault(MinimalRowConfig.ContentType.TIME);
         this.minimalRows[1] = MinimalRowConfig.createDefault(MinimalRowConfig.ContentType.DATE);
         this.minimalRows[2] = MinimalRowConfig.createDefault(MinimalRowConfig.ContentType.STATUS);
+        // 默认字号比例 3:1:1
+        this.minimalRows[0].setSizeRatio(1.0f);
+        this.minimalRows[1].setSizeRatio(0.33f);
+        this.minimalRows[2].setSizeRatio(0.33f);
     }
 
     /** fromPreferences - 从 SharedPreferences 加载时钟配置 */

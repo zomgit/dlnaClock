@@ -30,6 +30,7 @@ import com.dlnaclock.util.PreferenceHelper;
 import com.dlnaclock.util.FullScreenHelper;
 
 import android.content.res.Configuration;
+import android.view.TextureView;
 import android.widget.FrameLayout;
 
 /**
@@ -49,6 +50,7 @@ public class ScreenSaverActivity extends AppCompatActivity
     private ImageButton btnSwitchBg;
     private ImageButton btnSwitchWallpaper;
     private ImageButton btnWallpaperParams;
+    private ImageButton btnToggleVideoMute;
     private LinearLayout bottomRightGroup;
     private FrameLayout controlPanelContainer;
     private WallpaperControlPanel wallpaperControlPanel;
@@ -75,11 +77,17 @@ public class ScreenSaverActivity extends AppCompatActivity
         setContentView(R.layout.activity_screen_saver);
 
         screenSaverView = (ScreenSaverView) findViewById(R.id.screen_saver_view);
+        // 注入视频背景渲染层（仅视频背景模式显示，由 BackgroundManager 控制）
+        TextureView bgVideoSurface = (TextureView) findViewById(R.id.bg_video_surface);
+        if (screenSaverView != null && screenSaverView.getBackgroundManager() != null) {
+            screenSaverView.getBackgroundManager().attachVideoTexture(bgVideoSurface);
+        }
         menuBar = (LinearLayout) findViewById(R.id.menu_bar);
         btnSwitchStyle = (ImageButton) findViewById(R.id.btn_switch_style);
         btnSwitchBg = (ImageButton) findViewById(R.id.btn_switch_bg);
         btnSwitchWallpaper = (ImageButton) findViewById(R.id.btn_switch_wallpaper);
         btnWallpaperParams = (ImageButton) findViewById(R.id.btn_wallpaper_params);
+        btnToggleVideoMute = (ImageButton) findViewById(R.id.btn_toggle_video_mute);
         bottomRightGroup = (LinearLayout) findViewById(R.id.bottom_right_group);
         controlPanelContainer = (FrameLayout) findViewById(R.id.wallpaper_control_panel);
 
@@ -135,6 +143,16 @@ public class ScreenSaverActivity extends AppCompatActivity
                 @Override
                 public void onClick(View v) {
                     toggleWallpaperPanel();
+                }
+            });
+        }
+
+        // Setup video mute toggle button
+        if (btnToggleVideoMute != null) {
+            btnToggleVideoMute.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    toggleVideoMute();
                 }
             });
         }
@@ -257,6 +275,10 @@ public class ScreenSaverActivity extends AppCompatActivity
     protected void onPause() {
         super.onPause();
         screenSaverView.stop();
+        // 暂停背景视频，避免退到后台继续播放
+        if (screenSaverView.getBackgroundManager() != null) {
+            screenSaverView.getBackgroundManager().pauseVideo();
+        }
         dlnaManager.removeEventListener(this);
         hideControls();
     }
@@ -326,16 +348,16 @@ public class ScreenSaverActivity extends AppCompatActivity
 
     private void switchBackground() {
         int currentMode = PreferenceHelper.getBackgroundMode();
-        int nextMode = (currentMode + 1) % 4;
+        int nextMode = (currentMode + 1) % 5;
         PreferenceHelper.setBackgroundMode(nextMode);
         screenSaverView.reloadConfig();
 
-        String[] modeNames = {"纯色背景", "图片背景", "视频背景", "动态壁纸"};
+        String[] modeNames = {"纯色背景", "图片背景", "视频背景", "动态壁纸", "自定义壁纸"};
         Toast.makeText(this, modeNames[nextMode], Toast.LENGTH_SHORT).show();
         // 切换后更新壁纸按钮可见性
         updateWallpaperSwitchVisibility();
         // 非壁纸模式下关闭参数面板
-        if (nextMode != 3 && controlPanelContainer != null) {
+        if (nextMode != 3 && nextMode != 4 && controlPanelContainer != null) {
             controlPanelContainer.setVisibility(View.GONE);
         }
     }
@@ -344,18 +366,34 @@ public class ScreenSaverActivity extends AppCompatActivity
         int currentType = PreferenceHelper.getWallpaperType();
         int totalCount = WallpaperFactory.getWallpaperNames().size();
         if (totalCount <= 0) return;
-        // 在 0..totalCount-1 范围内循环
-        int nextType;
-        if (currentType < 0 || currentType >= totalCount) {
-            nextType = 0;
+
+        // 当前存储类型 → 名称列表索引（内置 0..WALLPAPER_COUNT-1，Lua 从 LUA_WALLPAPER_ID 开始）
+        int currentIndex;
+        if (currentType >= WallpaperFactory.LUA_WALLPAPER_ID) {
+            currentIndex = WallpaperFactory.WALLPAPER_COUNT + (currentType - WallpaperFactory.LUA_WALLPAPER_ID);
+        } else if (currentType >= 0) {
+            currentIndex = Math.min(currentType, WallpaperFactory.WALLPAPER_COUNT - 1);
         } else {
-            nextType = (currentType + 1) % totalCount;
+            currentIndex = 0;
         }
+        if (currentIndex >= totalCount) currentIndex = 0;
+
+        // 在 0..totalCount-1 范围内循环
+        int nextIndex = (currentIndex + 1) % totalCount;
+
+        // 名称列表索引 → 存储类型（内置直接用索引，Lua 加 LUA_WALLPAPER_ID 偏移）
+        int nextType;
+        if (nextIndex < WallpaperFactory.WALLPAPER_COUNT) {
+            nextType = nextIndex;
+        } else {
+            nextType = WallpaperFactory.LUA_WALLPAPER_ID + (nextIndex - WallpaperFactory.WALLPAPER_COUNT);
+        }
+
         PreferenceHelper.setWallpaperType(nextType);
         screenSaverView.reloadConfig();
 
         java.util.List<String> names = WallpaperFactory.getWallpaperNames();
-        Toast.makeText(this, names.get(nextType), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, names.get(nextIndex), Toast.LENGTH_SHORT).show();
         // 刷新壁纸参数控制面板
         refreshWallpaperControlPanel();
     }
@@ -364,12 +402,55 @@ public class ScreenSaverActivity extends AppCompatActivity
         if (screenSaverView == null) return;
         BackgroundManager bgMgr = screenSaverView.getBackgroundManager();
         boolean isWallpaper = bgMgr != null && bgMgr.isWallpaperMode();
+        // 壁纸切换按钮仅内置动态壁纸模式显示（Lua 模式切换无意义）
+        boolean isBuiltinWallpaper = bgMgr != null && bgMgr.getMode() == 3;
         if (btnSwitchWallpaper != null) {
-            btnSwitchWallpaper.setVisibility(isWallpaper ? View.VISIBLE : View.GONE);
+            btnSwitchWallpaper.setVisibility(isBuiltinWallpaper ? View.VISIBLE : View.GONE);
         }
         if (btnWallpaperParams != null) {
             btnWallpaperParams.setVisibility(isWallpaper ? View.VISIBLE : View.GONE);
         }
+        // 视频静音按钮仅在视频模式显示
+        updateVideoMuteButtonVisibility();
+    }
+
+    /**
+     * updateVideoMuteButtonVisibility - 更新视频静音按钮可见性和图标
+     */
+    private void updateVideoMuteButtonVisibility() {
+        if (btnToggleVideoMute == null || screenSaverView == null) return;
+        BackgroundManager bgMgr = screenSaverView.getBackgroundManager();
+        boolean isVideo = bgMgr != null && bgMgr.isVideoMode();
+        btnToggleVideoMute.setVisibility(isVideo ? View.VISIBLE : View.GONE);
+        if (isVideo) {
+            updateVideoMuteIcon();
+        }
+    }
+
+    /**
+     * updateVideoMuteIcon - 根据当前静音状态更新按钮图标
+     */
+    private void updateVideoMuteIcon() {
+        if (btnToggleVideoMute == null || screenSaverView == null) return;
+        BackgroundManager bgMgr = screenSaverView.getBackgroundManager();
+        if (bgMgr == null) return;
+        boolean muted = bgMgr.isVideoMuted();
+        btnToggleVideoMute.setImageResource(muted
+                ? R.drawable.ic_volume_off
+                : R.drawable.ic_volume_up);
+    }
+
+    /**
+     * toggleVideoMute - 切换背景视频静音状态
+     */
+    private void toggleVideoMute() {
+        if (screenSaverView == null) return;
+        BackgroundManager bgMgr = screenSaverView.getBackgroundManager();
+        if (bgMgr == null) return;
+        boolean newMuted = !bgMgr.isVideoMuted();
+        bgMgr.setVideoMuted(newMuted);
+        updateVideoMuteIcon();
+        Toast.makeText(this, newMuted ? "视频已静音" : "视频已开启声音", Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -388,12 +469,30 @@ public class ScreenSaverActivity extends AppCompatActivity
     // DlnaManager.DlnaEventListener implementation
     @Override
     public void onMediaUriSet(final MediaInfo mediaInfo) {
-        // 播放器由 DlnaManager 自动启动，无需在此处重复启动
+        // 新投屏开始时暂停背景视频，避免音频冲突
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (screenSaverView != null && screenSaverView.getBackgroundManager() != null) {
+                    screenSaverView.getBackgroundManager().pauseVideo();
+                }
+            }
+        });
     }
 
     @Override
-    public void onTransportStateChanged(TransportState state) {
-        // Handle state changes if needed
+    public void onTransportStateChanged(final TransportState state) {
+        // 投屏停止或媒体移除后恢复背景视频
+        if (state == TransportState.STOPPED || state == TransportState.NO_MEDIA_PRESENT) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (screenSaverView != null && screenSaverView.getBackgroundManager() != null) {
+                        screenSaverView.getBackgroundManager().resumeVideo();
+                    }
+                }
+            });
+        }
     }
 
     @Override
@@ -403,7 +502,15 @@ public class ScreenSaverActivity extends AppCompatActivity
 
     @Override
     public void onMediaCompleted() {
-        // Return to screensaver - already here
+        // 投屏播放完成后恢复背景视频
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (screenSaverView != null && screenSaverView.getBackgroundManager() != null) {
+                    screenSaverView.getBackgroundManager().resumeVideo();
+                }
+            }
+        });
     }
 
     @Override

@@ -105,7 +105,7 @@ public class PhaseBeamWallpaper implements WallpaperRenderer {
             float x = (beamPhase[i] + timeSec * beamBaseSpeed[i] * speedMultiplier) % (width + beamLength[i]) - beamLength[i];
 
             // 垂直微摆
-            float yOffset = beamY[i] + (float) Math.sin(timeSec * 0.5f + i) * 8f;
+            float yOffset = beamY[i] + TrigLut.sin(timeSec * 0.5f + i) * 8f;
 
             float beamLen = beamLength[i];
             float thick = beamThickness[i];

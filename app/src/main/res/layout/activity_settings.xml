@@ -209,11 +209,19 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/number_font" />
-                    <Spinner
-                        android:id="@+id/spinner_number_font"
+                    <Button
+                        android:id="@+id/btn_number_font"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:background="@drawable/bg_settings_spinner"
+                        android:background="@drawable/bg_settings_button"
+                        android:gravity="center_vertical|start"
+                        android:maxLines="2"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:singleLine="false"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
                         android:layout_marginBottom="@dimen/item_spacing" />
 
                     <TextView
@@ -221,11 +229,19 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/english_font" />
-                    <Spinner
-                        android:id="@+id/spinner_english_font"
+                    <Button
+                        android:id="@+id/btn_english_font"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:background="@drawable/bg_settings_spinner"
+                        android:background="@drawable/bg_settings_button"
+                        android:gravity="center_vertical|start"
+                        android:maxLines="2"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:singleLine="false"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
                         android:layout_marginBottom="@dimen/item_spacing" />
 
                     <TextView
@@ -233,11 +249,19 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/chinese_font" />
-                    <Spinner
-                        android:id="@+id/spinner_chinese_font"
+                    <Button
+                        android:id="@+id/btn_chinese_font"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:background="@drawable/bg_settings_spinner"
+                        android:background="@drawable/bg_settings_button"
+                        android:gravity="center_vertical|start"
+                        android:maxLines="2"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:singleLine="false"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
                         android:layout_marginBottom="@dimen/item_spacing" />
                 </LinearLayout>
 
@@ -824,28 +848,41 @@
                     android:id="@+id/layout_bg_video_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
+                    android:orientation="vertical"
                     android:visibility="gone">
-                    <Button
-                        android:id="@+id/btn_bg_video"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/choose_video"
-                        android:background="@drawable/bg_settings_button"
-                        android:textColor="@color/text_primary"
-                        android:paddingLeft="16dp"
-                        android:paddingRight="16dp"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp" />
-                    <TextView
-                        android:id="@+id/tv_bg_video_name"
-                        style="@style/Settings.Hint"
-                        android:layout_width="0dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <Button
+                            android:id="@+id/btn_bg_video"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/choose_video"
+                            android:background="@drawable/bg_settings_button"
+                            android:textColor="@color/text_primary"
+                            android:paddingLeft="16dp"
+                            android:paddingRight="16dp"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp" />
+                        <TextView
+                            android:id="@+id/tv_bg_video_name"
+                            style="@style/Settings.Hint"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:singleLine="true"
+                            android:layout_marginStart="8dp" />
+                    </LinearLayout>
+                    <CheckBox
+                        android:id="@+id/check_bg_video_mute"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:singleLine="true"
-                        android:layout_marginStart="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:text="背景视频静音"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -1159,7 +1196,7 @@
                         android:layout_height="wrap_content"
                         android:textSize="13sp"
                         android:textColor="@color/text_secondary"
-                        android:text="v1.0.1"
+                        android:text="v1.0.3"
                         android:layout_marginStart="12dp" />
                 </LinearLayout>
         

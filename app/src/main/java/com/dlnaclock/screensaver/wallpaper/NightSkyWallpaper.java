@@ -143,7 +143,7 @@ public class NightSkyWallpaper implements WallpaperRenderer {
 
         // 绘制星点
         for (int i = 0; i < starCount; i++) {
-            float alpha = starBaseAlpha[i] + 0.3f * (float) Math.sin(timeSec * starBaseSpeed[i] * speedMultiplier + starPhase[i]);
+            float alpha = starBaseAlpha[i] + 0.3f * TrigLut.sin(timeSec * starBaseSpeed[i] * speedMultiplier + starPhase[i]);
             if (alpha < 0) alpha = 0;
             if (alpha > 1) alpha = 1;
 

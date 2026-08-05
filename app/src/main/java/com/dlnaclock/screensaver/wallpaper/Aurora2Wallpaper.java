@@ -126,8 +126,8 @@ public class Aurora2Wallpaper implements WallpaperRenderer {
             float freq2 = layerFreq2[layer];
 
             // 起始点（叠加二次谐波使形状更复杂）
-            float startY = baseY + amp * (float) Math.sin(phase + timeSec * speed)
-                    + amp * 0.3f * (float) Math.sin(freq2 * phase + timeSec * speed * 1.7f);
+            float startY = baseY + amp * TrigLut.sin(phase + timeSec * speed)
+                    + amp * 0.3f * TrigLut.sin(freq2 * phase + timeSec * speed * 1.7f);
             path.moveTo(0, startY);
 
             for (int i = 0; i < CONTROL_POINTS; i++) {
@@ -139,12 +139,12 @@ public class Aurora2Wallpaper implements WallpaperRenderer {
                 float angle1 = (x1 / waveLen) * 2f * (float) Math.PI + phase + timeSec * speed;
                 float angleMid = (xMid / waveLen) * 2f * (float) Math.PI + phase + timeSec * speed;
 
-                float y0 = baseY + amp * (float) Math.sin(angle0)
-                        + amp * 0.3f * (float) Math.sin(freq2 * angle0 + timeSec * speed * 1.7f);
-                float y1 = baseY + amp * (float) Math.sin(angle1)
-                        + amp * 0.3f * (float) Math.sin(freq2 * angle1 + timeSec * speed * 1.7f);
-                float yMid = baseY + amp * (float) Math.sin(angleMid)
-                        + amp * 0.3f * (float) Math.sin(freq2 * angleMid + timeSec * speed * 1.7f);
+                float y0 = baseY + amp * TrigLut.sin(angle0)
+                        + amp * 0.3f * TrigLut.sin(freq2 * angle0 + timeSec * speed * 1.7f);
+                float y1 = baseY + amp * TrigLut.sin(angle1)
+                        + amp * 0.3f * TrigLut.sin(freq2 * angle1 + timeSec * speed * 1.7f);
+                float yMid = baseY + amp * TrigLut.sin(angleMid)
+                        + amp * 0.3f * TrigLut.sin(freq2 * angleMid + timeSec * speed * 1.7f);
 
                 path.cubicTo(x0 + segWidth * 0.33f, y0 + (yMid - y0) * 0.5f,
                         xMid, yMid, x1, y1);

@@ -2,7 +2,6 @@ package com.dlnaclock.clock;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Typeface;
 
 import com.dlnaclock.App;
 import com.dlnaclock.util.SystemFontHelper;
@@ -56,9 +55,9 @@ public class DigitalClockRenderer implements ClockRenderer {
         }
 
         // 设置数字字体（主行时间）
-        Typeface numberTypeface = SystemFontHelper.resolveTypeface(App.getInstance(), config.getNumberFont());
+        String numberFont = config.getNumberFont();
         // 设置中文/英文字体（副行日期）
-        Typeface textTypeface = SystemFontHelper.resolveTypeface(App.getInstance(), config.getChineseFont());
+        String textFont = config.getChineseFont();
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // 防抖动策略：含时分秒（两个冒号）时以分钟段为锚点居中，
@@ -72,8 +71,8 @@ public class DigitalClockRenderer implements ClockRenderer {
         if (c1 > 0 && c2 > c1) {
             // HH:mm:ss 形式：分钟段位于两个冒号之间
             timePaint.setTextAlign(Paint.Align.LEFT);
-            float prefixW = timePaint.measureText(mainLine, 0, c1 + 1);  // "HH:"
-            float minuteW = timePaint.measureText(mainLine, c1 + 1, c2); // "mm"
+            float prefixW = SystemFontHelper.measureTextWithFallback(App.getInstance(), mainLine, 0, c1 + 1, timePaint, numberFont);  // "HH:"
+            float minuteW = SystemFontHelper.measureTextWithFallback(App.getInstance(), mainLine, c1 + 1, c2, timePaint, numberFont); // "mm"
             // 让分钟段中心对准区域中心
             drawX = regionCenterX - prefixW - minuteW / 2f;
         } else {
@@ -87,11 +86,11 @@ public class DigitalClockRenderer implements ClockRenderer {
         timePaint.setColor(color);
         timePaint.setTextSize(fontSize);
         timePaint.setFakeBoldText(true);
-        timePaint.setTypeface(numberTypeface);
+        timePaint.setTypeface(SystemFontHelper.resolveTypeface(App.getInstance(), numberFont));
         timePaint.setAlpha(255);
         timePaint.setShader(null);
         timePaint.setMaskFilter(null);
-        canvas.drawText(mainLine, drawX, centerY, timePaint);
+        SystemFontHelper.drawTextWithFallback(App.getInstance(), canvas, mainLine, drawX, centerY, timePaint, numberFont);
 
         // 副行（日期部分）—— 日期不包含秒，始终居中
         if (subLine != null) {
@@ -101,10 +100,10 @@ public class DigitalClockRenderer implements ClockRenderer {
             subPaint.setAlpha(180);
             subPaint.setMaskFilter(null);
             subPaint.setShader(null);
-            subPaint.setTypeface(textTypeface);
+            subPaint.setTypeface(SystemFontHelper.resolveTypeface(App.getInstance(), textFont));
             // 副行始终居中（日期不会快速变化）
             float subDrawX = blockLeft + refBlockWidth / 2f;
-            canvas.drawText(subLine, subDrawX, centerY + fontSize * 0.65f, subPaint);
+            SystemFontHelper.drawTextWithFallback(App.getInstance(), canvas, subLine, subDrawX, centerY + fontSize * 0.65f, subPaint, textFont);
         }
     }
 
@@ -147,12 +146,12 @@ public class DigitalClockRenderer implements ClockRenderer {
         }
 
         // 设置数字字体（主行时间）
-        Typeface numberTypeface = SystemFontHelper.resolveTypeface(App.getInstance(), config.getNumberFont());
+        String numberFont = config.getNumberFont();
         // 设置中文/英文字体（副行日期）
-        Typeface textTypeface = SystemFontHelper.resolveTypeface(App.getInstance(), config.getChineseFont());
+        String textFont = config.getChineseFont();
 
         // 基于屏幕宽度计算字号（各时钟类型独立存储）
-        timePaint.setTypeface(numberTypeface);
+        timePaint.setTypeface(SystemFontHelper.resolveTypeface(App.getInstance(), numberFont));
         setTabularNumbers(timePaint); // 启用等宽数字
         float orientScale = ClockConfig.getFontScaleForOrientation(width, height, ClockConfig.ClockStyle.DIGITAL);
         config.setFontScale(orientScale);
@@ -168,7 +167,7 @@ public class DigitalClockRenderer implements ClockRenderer {
 
         // 计算布局尺寸
         float subSize = (subLine != null) ? fontSize * 0.35f : 0;
-        subPaint.setTypeface(textTypeface);
+        subPaint.setTypeface(SystemFontHelper.resolveTypeface(App.getInstance(), textFont));
         // 副行不用 tnum（日期部分不需要等宽数字），仅在时间主行使用
         if (subLine != null) {
             subPaint.setTextSize(subSize);
@@ -178,14 +177,14 @@ public class DigitalClockRenderer implements ClockRenderer {
         timePaint.setTextSize(fontSize);
 
         // 计算文本块尺寸（用参考串测量宽度，确保布局框架稳定不随文本内容抖动）
-        float refMainWidth = timePaint.measureText(refTimeStr);
+        float refMainWidth = SystemFontHelper.measureTextWithFallback(App.getInstance(), refTimeStr, timePaint, numberFont);
         // 副行参考串：用副行格式部分的归一化字符串
         float refSubWidth = 0;
         if (subLine != null && fmtSpaceIdx > 0 && fmtSpaceIdx < format.length() - 1) {
             String subFormat = format.substring(fmtSpaceIdx + 1);
             String refSubStr = ClockConfig.generateReferenceString(subFormat);
             subPaint.setTextSize(subSize);
-            refSubWidth = subPaint.measureText(refSubStr);
+            refSubWidth = SystemFontHelper.measureTextWithFallback(App.getInstance(), refSubStr, subPaint, textFont);
         }
         float refBlockWidth = Math.max(refMainWidth, refSubWidth);
         float blockHeight = (subLine != null) ? fontSize + subSize : fontSize;
